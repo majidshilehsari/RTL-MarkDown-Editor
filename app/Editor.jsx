@@ -92,12 +92,15 @@ export default function Editor() {
   const [rliCopy, setRliCopy] = useState(true);
   const [autosave, setAutosave] = useState(true);
   const [saveState, setSaveState] = useState('');
-  const [split, setSplit] = useState(50); // percent for editor
+  const [split, setSplit] = useState(25); // percent for editor (default 1:3 — editor thin, preview 3x wider)
   const [info, setInfo] = useState({ words: 0, chars: 0, line: 1, col: 1 });
+  const [dragActive, setDragActive] = useState(false);
+  const [dragValid, setDragValid] = useState(false);
 
   const taRef = useRef(null);
   const resizeRef = useRef(null);
   const saveTimer = useRef(null);
+  const dragDepth = useRef(0);
 
   // --- load initial ---
   useEffect(() => {
@@ -291,6 +294,60 @@ export default function Editor() {
     input.click();
   };
 
+  // --- drag-and-drop file open ---
+  const isSupportedFile = (name) => /\.(md|markdown|txt)$/i.test(name || '');
+
+  const checkDragValid = (e) => {
+    const dt = e.dataTransfer;
+    if (!dt) return false;
+    const f = dt.files?.[0];
+    if (f) return isSupportedFile(f.name);
+    if (dt.items) {
+      for (let i = 0; i < dt.items.length; i++) {
+        const it = dt.items[i];
+        if (it.kind !== 'file') continue;
+        const file = it.getAsFile && it.getAsFile();
+        if (file) return isSupportedFile(file.name);
+        const t = (it.type || '').toLowerCase();
+        return t.includes('markdown') || t.startsWith('text/') || t === '';
+      }
+    }
+    return false;
+  };
+
+  const onDragEnter = (e) => {
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragValid(checkDragValid(e));
+    setDragActive(true);
+  };
+
+  const onDragOver = (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+    setDragValid(checkDragValid(e));
+    setDragActive(true);
+  };
+
+  const onDragLeave = (e) => {
+    e.preventDefault();
+    dragDepth.current -= 1;
+    if (dragDepth.current <= 0) {
+      dragDepth.current = 0;
+      setDragActive(false);
+    }
+  };
+
+  const onDrop = (e) => {
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragActive(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f && isSupportedFile(f.name)) {
+      f.text().then((t) => setText(t)).catch(() => setSaveState('خطا در خواندن فایل'));
+    }
+  };
+
   // --- paste auto-clean ---
   const onPaste = (e) => {
     if (!autoClean) return;
@@ -319,14 +376,30 @@ export default function Editor() {
     else if (ctrl && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); actions.redo(); }
   };
 
+  // --- global shortcut: Ctrl/Cmd+O → باز کردن فایل ---
+  useEffect(() => {
+    const onGlobalKey = (e) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && !e.shiftKey && e.key.toLowerCase() === 'o') {
+        e.preventDefault();
+        importFile();
+      }
+    };
+    window.addEventListener('keydown', onGlobalKey);
+    return () => window.removeEventListener('keydown', onGlobalKey);
+  }, []);
+
   // --- divider drag ---
   const onDividerDown = (e) => {
     e.preventDefault();
     const container = containerRef.current;
+    if (!container) return;
     const rect = container.getBoundingClientRect();
     const move = (ev) => {
-      const pct = ((ev.clientX - rect.left) / rect.width) * 100;
-      setSplit(Math.min(70, Math.max(30, pct)));
+      // در چیدمان RTL پنل ویرایش سمت راست است؛ اندازه را از لبه‌ی راست می‌سنجیم
+      // تا کشیدنِ تقسیم‌کننده به چپ، پنل ویرایش را پهن‌تر کند.
+      const pct = ((rect.right - ev.clientX) / rect.width) * 100;
+      setSplit(Math.min(85, Math.max(15, pct)));
     };
     const up = () => {
       window.removeEventListener('mousemove', move);
@@ -350,7 +423,14 @@ export default function Editor() {
   }, []);
 
   return (
-    <div className="editor-root" data-theme={theme}>
+    <div
+      className="editor-root"
+      data-theme={theme}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       {/* ===== نوار ابزار ===== */}
       <header className="toolbar">
         <div className="brand">
@@ -403,7 +483,7 @@ export default function Editor() {
             <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')}>ویرایش</button>
             <button className={mode === 'preview' ? 'on' : ''} onClick={() => setMode('preview')}>پیش‌نمایش</button>
           </div>
-          <button className="tool" title="وارد کردن فایل" onClick={importFile}>📂</button>
+          <button className="tool" title="باز کردن فایل (Ctrl+O)" onClick={importFile}>📂 باز کردن</button>
           <button className="tool" title="کپی متن" onClick={() => copyText(text)}>📋</button>
           <button className="tool" title="دانلود MD" onClick={() => download(text, 'document.md', 'text/markdown')}>⬇️</button>
           <button className="tool" title="دانلود HTML" onClick={() => download(sanitizeHtml(marked.parse(text)), 'document.html', 'text/html')}>🖨️</button>
@@ -547,6 +627,17 @@ export default function Editor() {
         <span className="grow" />
         <span className={`save ${saveState.startsWith('خطا') ? 'err' : ''}`}>{saveState}</span>
       </footer>
+
+      {/* ===== نشانگر درگ‌اند‌دراپ ===== */}
+      {dragActive && (
+        <div className={`drop-overlay ${dragValid ? 'valid' : 'invalid'}`}>
+          <div className="drop-box">
+            {dragValid
+              ? '📂 رها کنید — فایل پشتیبانی‌شده'
+              : 'فقط فایل‌های .md و .txt مجاز است'}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

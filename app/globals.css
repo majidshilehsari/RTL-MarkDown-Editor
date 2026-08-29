@@ -58,6 +58,7 @@ button {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  position: relative;
 }
 
 /* ===== نوار ابزار ===== */
@@ -381,6 +382,36 @@ button.primary:hover {
 .divider:hover {
   background: var(--accent);
   color: #fff;
+}
+
+/* ===== نشانگر درگ‌اند‌دراپ ===== */
+.drop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 24, 33, 0.35);
+  pointer-events: none;
+}
+
+.drop-overlay .drop-box {
+  padding: 18px 28px;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.drop-overlay.valid .drop-box {
+  background: var(--fix); /* سبز — فایل .md/.txt پشتیبانی می‌شود */
+}
+
+.drop-overlay.invalid .drop-box {
+  background: var(--muted); /* تیره — نوع فایل نامعتبر */
 }
 
 /* ===== نوار وضعیت ===== */
