@@ -250,7 +250,6 @@ export default function Editor() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [clipPerm, setClipPerm] = useState('unknown');
-  const [pasteArmed, setPasteArmed] = useState(false);
   const [lineHeight, setLineHeight] = useState(1.7);
   const [autoClean, setAutoClean] = useState(true);
   const [rliCopy, setRliCopy] = useState(true);
@@ -268,7 +267,6 @@ export default function Editor() {
   const pasteCatcherRef = useRef(null);
   const previewRef = useRef(null);
   const histRef = useRef({ stack: [], index: -1, lock: false, timer: null });
-  const armTimer = useRef(null);
   const pendingPaste = useRef(null);
 
   // --- load initial ---
@@ -617,18 +615,12 @@ export default function Editor() {
     };
   }, []);
 
-  const readClipboard = async () => {
-    let granted = false;
-    try {
-      const st = await navigator.permissions.query({ name: 'clipboard-read' });
-      granted = st.state === 'granted';
-      setClipPerm(st.state);
-    } catch {
-      /* فایرفاکس/سافاری این مجوز را گزارش نمی‌کنند */
-    }
-    const raw = await navigator.clipboard.readText();
-    void granted;
-    return clean(raw);
+  // مهم: readText باید «اولین» کار داخل رویداد کلیک باشد.
+  // هر await قبل از آن، فعال‌سازی کاربر (user activation) را مصرف می‌کند و
+  // باعث می‌شود مرورگر درخواست را رد کند یا تاییدیه‌ی اضافه نشان دهد.
+  const readClipboardNow = () => {
+    if (!navigator.clipboard?.readText) return Promise.reject(new Error('unsupported'));
+    return navigator.clipboard.readText();
   };
 
   // اگر مرورگر خواندن مستقیم کلیپ‌بورد را اجازه ندهد، با یک فیلد مخفی و Ctrl+V ادامه می‌دهیم
@@ -638,7 +630,7 @@ export default function Editor() {
     if (!el) return;
     el.value = '';
     el.focus();
-    setSaveState('برای چسباندن Ctrl+V را بزنید');
+    setSaveState('اجازه داده نشد — یک‌بار Ctrl+V را بزنید');
   };
 
   const onCatcherPaste = (e) => {
@@ -663,38 +655,30 @@ export default function Editor() {
     requestAnimationFrame(() => taRef.current?.focus());
   };
 
-  const quickPaste = async () => {
-    try {
-      const clip = await readClipboard();
-      if (!clip) return;
+  const quickPaste = () => {
+    const p = readClipboardNow(); // بدون هیچ await قبل از آن
+    setSaveState('در حال خواندن کلیپ‌بورد…');
+    p.then((raw) => {
+      const clip = clean(raw);
+      if (!clip) {
+        setSaveState('کلیپ‌بورد خالی است');
+        return;
+      }
       insertAtCursor(clip);
       setSaveState('چسبانده شد ✓');
-    } catch {
-      fallbackPaste('insert');
-    }
+    }).catch(() => fallbackPaste('insert'));
   };
 
-  // مرحله‌ی اول: پاک کردن فوری و آماده‌شدن. مرحله‌ی دوم (کلیک مجدد): چسباندن
-  const quickClearAndPaste = async () => {
-    if (!pasteArmed) {
-      setText('');
-      setPasteArmed(true);
-      setSaveState('متن پاک شد — برای چسباندن دوباره کلیک کنید');
-      clearTimeout(armTimer.current);
-      armTimer.current = setTimeout(() => setPasteArmed(false), 8000);
+  // یک کلیک: پاک کردن فوری + چسباندن خودکار محتوای کلیپ‌بورد
+  const quickClearAndPaste = () => {
+    const p = readClipboardNow(); // اولین دستور، داخل همان رویداد کلیک
+    setText('');
+    setSaveState('در حال خواندن کلیپ‌بورد…');
+    p.then((raw) => {
+      setText(clean(raw));
+      setSaveState('پاک و چسبانده شد ✓');
       requestAnimationFrame(() => taRef.current?.focus());
-      return;
-    }
-    clearTimeout(armTimer.current);
-    setPasteArmed(false);
-    try {
-      const clip = await readClipboard();
-      setText(clip);
-      setSaveState('چسبانده شد ✓');
-      requestAnimationFrame(() => taRef.current?.focus());
-    } catch {
-      fallbackPaste('replace');
-    }
+    }).catch(() => fallbackPaste('replace'));
   };
 
   const quickCopy = () => copyText(text);
@@ -726,6 +710,22 @@ export default function Editor() {
     else if (ctrl && e.key.toLowerCase() === 'z' && !e.shiftKey) { e.preventDefault(); actions.undo(); }
     else if (ctrl && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) { e.preventDefault(); actions.redo(); }
   };
+
+  // --- Ctrl+V در هر جای صفحه (مسیر بدون هیچ تاییدیه‌ی مرورگر) ---
+  useEffect(() => {
+    const onWindowPaste = (e) => {
+      const t = e.target;
+      if (t === taRef.current || t === pasteCatcherRef.current) return;
+      if (pendingPaste.current) return;
+      const data = e.clipboardData?.getData('text');
+      if (!data) return;
+      e.preventDefault();
+      setText((prev) => (prev ? prev + '\n' + clean(data) : clean(data)));
+      setSaveState('چسبانده شد ✓');
+    };
+    window.addEventListener('paste', onWindowPaste);
+    return () => window.removeEventListener('paste', onWindowPaste);
+  }, [clean]);
 
   // --- global shortcut: Ctrl/Cmd+O → باز کردن فایل ---
   useEffect(() => {
@@ -848,13 +848,7 @@ export default function Editor() {
         <div className="qb-center">
           <button className="qbtn qbtn-red" title="پاک کردن کل متن (بدون تاییدیه)" onClick={quickClear}>🗑️ پاک کردن</button>
           <button className="qbtn qbtn-green" title="چسباندن از کلیپ‌بورد در محل نشانگر" onClick={quickPaste}>📥 چسباندن</button>
-          <button
-            className={`qbtn qbtn-amber ${pasteArmed ? 'armed' : ''}`}
-            title={pasteArmed ? 'برای چسباندن محتوای کلیپ‌بورد دوباره کلیک کنید' : 'پاک کردن کل متن و چسباندن محتوای کلیپ‌بورد'}
-            onClick={quickClearAndPaste}
-          >
-            {pasteArmed ? '👉 دوباره کلیک کنید' : '♻️ پاک کردن و چسباندن'}
-          </button>
+          <button className="qbtn qbtn-amber" title="پاک کردن کل متن و چسباندن خودکار محتوای کلیپ‌بورد" onClick={quickClearAndPaste}>♻️ پاک کردن و چسباندن</button>
           <button className="qbtn qbtn-blue" title="کپی کل متن ویرایشگر" onClick={quickCopy}>📋 کپی</button>
           <button
             className="qbtn qbtn-purple"
