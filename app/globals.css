@@ -8,7 +8,18 @@
   --accent: #2563eb;
   --accent-2: #1d4ed8;
   --fix: #059669;
-  --code-bg: #f1f3f5;
+  --code-bg: #faf9f8;
+  --code-border: #e2e4e9;
+  --code-head-bg: #eceef2;
+  --code-head-text: #3b424d;
+  --hl-text: #24292f;
+  --hl-comment: #8a919a;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a7d33;
+  --hl-number: #0550ae;
+  --hl-title: #8250df;
+  --hl-attr: #953800;
+  --hl-meta: #0969da;
   --shadow: 0 6px 24px rgba(20, 24, 33, 0.12);
 }
 
@@ -22,7 +33,18 @@
   --accent: #3b82f6;
   --accent-2: #60a5fa;
   --fix: #10b981;
-  --code-bg: #161a20;
+  --code-bg: #0f141b;
+  --code-border: #2a313c;
+  --code-head-bg: #1a2029;
+  --code-head-text: #c6ccd6;
+  --hl-text: #e6e9ef;
+  --hl-comment: #7d8795;
+  --hl-keyword: #ff7b72;
+  --hl-string: #7ee787;
+  --hl-number: #79c0ff;
+  --hl-title: #d2a8ff;
+  --hl-attr: #ffa657;
+  --hl-meta: #58a6ff;
   --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
 }
 
@@ -594,13 +616,177 @@ button.primary:hover {
   unicode-bidi: embed;
 }
 
+/* ===== بلاک کد شبیه ویرایشگر، با سربرگ و دکمه‌ی کپی ===== */
+.code-block {
+  margin: 1em 0;
+  border: 1px solid var(--code-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--code-bg);
+  box-shadow: 0 2px 10px rgba(15, 20, 30, 0.08);
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--code-head-bg);
+  border-bottom: 1px solid var(--code-border);
+  direction: ltr;
+}
+
+.code-lang {
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--code-head-text);
+  opacity: 0.85;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--code-head-text);
+  background: color-mix(in srgb, var(--code-head-text) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--code-head-text) 22%, transparent);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+}
+
+.copy-btn:hover {
+  background: color-mix(in srgb, var(--code-head-text) 20%, transparent);
+}
+
+.copy-btn.done {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.code-block .markdown-body pre,
+.code-block pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--code-bg);
+}
+
+/* ===== جدول با دکمه‌ی کپی شناور ===== */
+.table-wrap {
+  position: relative;
+  margin: 1em 0;
+  overflow-x: auto;
+  border-radius: 10px;
+}
+
+.table-wrap > .table-copy {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 3;
+  opacity: 0;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(15, 20, 30, 0.14);
+}
+
+.table-wrap:hover > .table-copy,
+.table-wrap > .table-copy:focus-visible {
+  opacity: 1;
+}
+
+.table-wrap > .table-copy.done {
+  opacity: 1;
+  color: #fff;
+}
+
 .markdown-body pre {
   background: var(--code-bg);
-  padding: 12px;
+  padding: 14px 16px;
   border-radius: 8px;
   overflow-x: auto;
   direction: ltr;
   text-align: left;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ===== رنگ‌آمیزی نحوی (highlight.js) ===== */
+.hljs {
+  color: var(--hl-text);
+  background: transparent;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag,
+.hljs-meta .hljs-keyword {
+  color: var(--hl-keyword);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-meta-string {
+  color: var(--hl-string);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link {
+  color: var(--hl-number);
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: var(--hl-title);
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-type,
+.hljs-built_in {
+  color: var(--hl-attr);
+}
+
+.hljs-meta,
+.hljs-tag {
+  color: var(--hl-meta);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+.hljs-deletion {
+  color: #ef4444;
 }
 
 .markdown-body pre code {

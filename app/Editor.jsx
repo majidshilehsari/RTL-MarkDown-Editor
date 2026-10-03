@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import hljs from 'highlight.js/lib/common';
 import { fixRTLText, wrapForRTL, isMixedDirection } from '../lib/bidi';
 
 marked.use({ gfm: true, breaks: true });
@@ -102,6 +103,7 @@ export default function Editor() {
   const saveTimer = useRef(null);
   const dragDepth = useRef(0);
   const pasteCatcherRef = useRef(null);
+  const previewRef = useRef(null);
   const pendingPaste = useRef(null);
 
   // --- load initial ---
@@ -148,6 +150,94 @@ export default function Editor() {
     const raw = marked.parse(text || '');
     return sanitizeHtml(raw);
   }, [text]);
+
+  // --- رنگ‌آمیزی کد + دکمه‌ی کپی روی بلاک‌های کد و جدول‌ها ---
+  const attachCopy = useCallback((btn, getText) => {
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(getText());
+        const old = btn.innerHTML;
+        btn.classList.add('done');
+        btn.innerHTML = '<span>✓</span> کپی شد';
+        setTimeout(() => {
+          btn.classList.remove('done');
+          btn.innerHTML = old;
+        }, 1600);
+      } catch {
+        btn.innerHTML = '<span>⚠️</span> خطا';
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    const root = previewRef.current;
+    if (!root) return;
+
+    // --- بلاک‌های کد ---
+    root.querySelectorAll('pre').forEach((pre) => {
+      if (pre.parentElement?.classList.contains('code-block')) return;
+      const codeEl = pre.querySelector('code');
+      const rawCode = (codeEl || pre).textContent || '';
+      let lang = '';
+      const m = (codeEl?.className || '').match(/language-([\w+#-]+)/i);
+      if (m) lang = m[1].toLowerCase();
+
+      if (codeEl) {
+        try {
+          const res =
+            lang && hljs.getLanguage(lang)
+              ? hljs.highlight(rawCode, { language: lang, ignoreIllegals: true })
+              : hljs.highlightAuto(rawCode);
+          codeEl.innerHTML = res.value;
+          codeEl.classList.add('hljs');
+          if (!lang) lang = res.language || '';
+        } catch {
+          /* اگر رنگ‌آمیزی شکست خورد، کد خام می‌ماند */
+        }
+      }
+
+      const wrap = document.createElement('div');
+      wrap.className = 'code-block';
+      const head = document.createElement('div');
+      head.className = 'code-head';
+      const label = document.createElement('span');
+      label.className = 'code-lang';
+      label.textContent = lang ? lang.toUpperCase() : 'کد';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn';
+      btn.title = 'کپی کد در کلیپ‌بورد';
+      btn.innerHTML = '<span>📋</span> کپی';
+      attachCopy(btn, () => rawCode);
+      head.append(label, btn);
+
+      pre.parentNode.insertBefore(wrap, pre);
+      wrap.append(head, pre);
+    });
+
+    // --- جدول‌ها ---
+    root.querySelectorAll('table').forEach((table) => {
+      if (table.parentElement?.classList.contains('table-wrap')) return;
+      const wrap = document.createElement('div');
+      wrap.className = 'table-wrap';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'copy-btn table-copy';
+      btn.title = 'کپی جدول در کلیپ‌بورد';
+      btn.innerHTML = '<span>📋</span> کپی جدول';
+      attachCopy(btn, () =>
+        Array.from(table.querySelectorAll('tr'))
+          .map((tr) =>
+            Array.from(tr.querySelectorAll('th,td'))
+              .map((c) => (c.textContent || '').trim())
+              .join('\t')
+          )
+          .join('\n')
+      );
+      table.parentNode.insertBefore(wrap, table);
+      wrap.append(btn, table);
+    });
+  }, [html, mode, attachCopy]);
 
   // --- generic selection transform ---
   const transformSelection = useCallback(
@@ -696,7 +786,7 @@ export default function Editor() {
               <span>👁️ پیش‌نمایش</span>
               <span className="hint">سمت چپ — نتیجه زنده</span>
             </div>
-            <div className="preview-area markdown-body" dir="rtl" dangerouslySetInnerHTML={{ __html: html }} />
+            <div ref={previewRef} className="preview-area markdown-body" dir="rtl" dangerouslySetInnerHTML={{ __html: html }} />
           </section>
         )}
       </main>
