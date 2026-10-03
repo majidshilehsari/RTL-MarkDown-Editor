@@ -132,11 +132,13 @@ button {
   gap: 6px;
   padding: 7px 14px;
   border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   color: #fff;
   background: var(--qb);
-  border: 1px solid transparent;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   box-shadow: 0 2px 6px var(--qb-shadow, rgba(0, 0, 0, 0.18));
   white-space: nowrap;
   cursor: pointer;
@@ -155,28 +157,28 @@ button {
 
 /* رنگ اختصاصی هر دکمه */
 .quickbar .qbtn-red {
-  --qb: linear-gradient(135deg, #f87171, #dc2626);
-  --qb-shadow: rgba(220, 38, 38, 0.35);
+  --qb: linear-gradient(135deg, #ef4444, #b91c1c);
+  --qb-shadow: rgba(185, 28, 28, 0.35);
 }
 
 .quickbar .qbtn-green {
-  --qb: linear-gradient(135deg, #34d399, #059669);
-  --qb-shadow: rgba(5, 150, 105, 0.35);
+  --qb: linear-gradient(135deg, #10b981, #047857);
+  --qb-shadow: rgba(4, 120, 87, 0.35);
 }
 
 .quickbar .qbtn-amber {
-  --qb: linear-gradient(135deg, #fbbf24, #ea580c);
-  --qb-shadow: rgba(234, 88, 12, 0.35);
+  --qb: linear-gradient(135deg, #ea580c, #9a3412);
+  --qb-shadow: rgba(154, 52, 18, 0.35);
 }
 
 .quickbar .qbtn-blue {
-  --qb: linear-gradient(135deg, #60a5fa, #2563eb);
-  --qb-shadow: rgba(37, 99, 235, 0.35);
+  --qb: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  --qb-shadow: rgba(29, 78, 216, 0.35);
 }
 
 .quickbar .qbtn-purple {
-  --qb: linear-gradient(135deg, #c084fc, #7c3aed);
-  --qb-shadow: rgba(124, 58, 237, 0.35);
+  --qb: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  --qb-shadow: rgba(109, 40, 217, 0.35);
 }
 
 .toolbar-right {

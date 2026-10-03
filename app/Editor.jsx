@@ -77,7 +77,7 @@ export default function Editor() {
   const [text, setText] = useState('');
   const [loaded, setLoaded] = useState(false);
   const [theme, setTheme] = useState('light');
-  const [mode, setMode] = useState('split'); // split | edit | preview
+  const [mode, setMode] = useState('preview'); // split | edit | preview — پیش‌فرض: پیش‌نمایش
   const [showTable, setShowTable] = useState(false);
   const [tableTab, setTableTab] = useState('make');
   const [tRows, setTRows] = useState(4);
