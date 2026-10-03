@@ -60,7 +60,7 @@ body {
 }
 
 body {
-  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: 'Vazirmatn', 'Inter', 'Segoe UI', Tahoma, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
   transition: background 0.2s, color 0.2s;
@@ -1082,4 +1082,87 @@ button.primary:hover {
 @media (max-width: 720px) {
   .brand-text { display: none; }
   .hint { display: none; }
+}
+
+/* ===== انتخاب زبان در منو ===== */
+.menu-langs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 12px 2px;
+}
+
+.menu-langs-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.lang-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.lang-btn:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+}
+
+.lang-btn.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* در چیدمان چپ‌به‌راست، منو و دکمه‌های شناور جای درست خود را بگیرند */
+[dir='ltr'] .menu-panel {
+  left: auto;
+  right: 12px;
+}
+
+[dir='ltr'] .table-wrap > .table-copy {
+  right: auto;
+  left: 0;
+}
+
+[dir='ltr'] .markdown-body {
+  direction: ltr;
+  text-align: left;
+}
+
+[dir='ltr'] .markdown-body th,
+[dir='ltr'] .markdown-body td {
+  text-align: left;
+}
+
+[dir='ltr'] .menu-item {
+  text-align: left;
+}
+
+/* فونت مناسب هر زبان */
+[lang='ar'],
+[lang='ar'] .editor-area,
+[lang='ar'] .markdown-body {
+  font-family: 'Noto Sans Arabic', 'Vazirmatn', Tahoma, sans-serif;
+}
+
+[lang='en'],
+[lang='en'] .editor-area,
+[lang='en'] .markdown-body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }

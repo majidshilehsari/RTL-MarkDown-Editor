@@ -5,6 +5,8 @@ import DOMPurify from 'dompurify';
 import hljs from 'highlight.js/lib/common';
 import { fixRTLText, wrapForRTL, isMixedDirection } from '../lib/bidi';
 import { renderMarkdown, copyTargetText } from '../lib/markdown';
+import { LANGS, dirOf, detectLang, translator } from '../lib/i18n';
+import { getSample } from '../lib/samples';
 
 function sanitizeHtml(raw) {
   // DOMPurify فقط در مرورگر در دسترس است؛ هنگام رندر اولیه (SSR) بدون پاک‌سازی برگردانده می‌شود
@@ -14,185 +16,6 @@ function sanitizeHtml(raw) {
 
 const STORAGE_KEY = 'rtl-md-editor-v2';
 
-const SAMPLE = `سلام! حتماً. یک جدول از رنگ‌ها به همراه کدهای عددی‌شون (RGB، Hex و نام رنگ) برات آماده کردم و کد HTML کاملش رو هم نوشتم.
-
-## جدول رنگ‌ها و کدهای عددی
-
-| نام رنگ | کد Hex | کد RGB | نمونه رنگ |
-|---------|--------|--------|-----------|
-| قرمز (Red) | #FF0000 | rgb(255, 0, 0) | 🔴 |
-| سبز (Green) | #00FF00 | rgb(0, 255, 0) | 🟢 |
-| آبی (Blue) | #0000FF | rgb(0, 0, 255) | 🔵 |
-| زرد (Yellow) | #FFFF00 | rgb(255, 255, 0) | 🟡 |
-| نارنجی (Orange) | #FFA500 | rgb(255, 165, 0) | 🟠 |
-| بنفش (Purple) | #800080 | rgb(128, 0, 128) | 🟣 |
-| صورتی (Pink) | #FFC0CB | rgb(255, 192, 203) | 🌸 |
-| مشکی (Black) | #000000 | rgb(0, 0, 0) | ⚫ |
-| سفید (White) | #FFFFFF | rgb(255, 255, 255) | ⚪ |
-| خاکستری (Gray) | #808080 | rgb(128, 128, 128) | 🩶 |
-
-## کد HTML کامل
-
-\`\`\`html
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>جدول رنگ‌ها و کدهای عددی</title>
-    <style>
-        body {
-            font-family: 'Tahoma', sans-serif;
-            background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            padding: 40px 20px;
-        }
-
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            max-width: 700px;
-            background-color: #fff;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        caption {
-            font-size: 1.4em;
-            font-weight: bold;
-            padding: 15px;
-            background-color: #333;
-            color: #fff;
-        }
-
-        th, td {
-            padding: 12px 15px;
-            text-align: center;
-            border-bottom: 1px solid #ddd;
-        }
-
-        thead th {
-            background-color: #444;
-            color: #fff;
-            font-size: 1em;
-        }
-
-        tbody tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        .swatch {
-            display: inline-block;
-            width: 40px;
-            height: 25px;
-            border-radius: 5px;
-            border: 1px solid #999;
-        }
-
-        /* رنگ نمونه‌ها */
-        .red    { background-color: #FF0000; }
-        .green  { background-color: #00FF00; }
-        .blue   { background-color: #0000FF; }
-        .yellow { background-color: #FFFF00; }
-        .orange { background-color: #FFA500; }
-        .purple { background-color: #800080; }
-        .pink   { background-color: #FFC0CB; }
-        .black  { background-color: #000000; }
-        .white  { background-color: #FFFFFF; }
-        .gray   { background-color: #808080; }
-    </style>
-</head>
-<body>
-
-    <table>
-        <caption>🎨 جدول رنگ‌ها و کدهای عددی</caption>
-        <thead>
-            <tr>
-                <th>نام رنگ</th>
-                <th>کد Hex</th>
-                <th>کد RGB</th>
-                <th>نمونه رنگ</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>قرمز (Red)</td>
-                <td>#FF0000</td>
-                <td>rgb(255, 0, 0)</td>
-                <td><span class="swatch red"></span></td>
-            </tr>
-            <tr>
-                <td>سبز (Green)</td>
-                <td>#00FF00</td>
-                <td>rgb(0, 255, 0)</td>
-                <td><span class="swatch green"></span></td>
-            </tr>
-            <tr>
-                <td>آبی (Blue)</td>
-                <td>#0000FF</td>
-                <td>rgb(0, 0, 255)</td>
-                <td><span class="swatch blue"></span></td>
-            </tr>
-            <tr>
-                <td>زرد (Yellow)</td>
-                <td>#FFFF00</td>
-                <td>rgb(255, 255, 0)</td>
-                <td><span class="swatch yellow"></span></td>
-            </tr>
-            <tr>
-                <td>نارنجی (Orange)</td>
-                <td>#FFA500</td>
-                <td>rgb(255, 165, 0)</td>
-                <td><span class="swatch orange"></span></td>
-            </tr>
-            <tr>
-                <td>بنفش (Purple)</td>
-                <td>#800080</td>
-                <td>rgb(128, 0, 128)</td>
-                <td><span class="swatch purple"></span></td>
-            </tr>
-            <tr>
-                <td>صورتی (Pink)</td>
-                <td>#FFC0CB</td>
-                <td>rgb(255, 192, 203)</td>
-                <td><span class="swatch pink"></span></td>
-            </tr>
-            <tr>
-                <td>مشکی (Black)</td>
-                <td>#000000</td>
-                <td>rgb(0, 0, 0)</td>
-                <td><span class="swatch black"></span></td>
-            </tr>
-            <tr>
-                <td>سفید (White)</td>
-                <td>#FFFFFF</td>
-                <td>rgb(255, 255, 255)</td>
-                <td><span class="swatch white"></span></td>
-            </tr>
-            <tr>
-                <td>خاکستری (Gray)</td>
-                <td>#808080</td>
-                <td>rgb(128, 128, 128)</td>
-                <td><span class="swatch gray"></span></td>
-            </tr>
-        </tbody>
-    </table>
-
-</body>
-</html>
-\`\`\`
-
-### ویژگی‌های این کد:
-- ✅ **راست‌چین (RTL)** برای زبان فارسی
-- ✅ **نمونه رنگ واقعی** در کنار هر ردیف
-- ✅ **افکت hover** روی ردیف‌ها
-- ✅ **طراحی ریسپانسیو** و مدرن
-- ✅ **کد Hex و RGB** هر رنگ
-
-اگه بخوای می‌تونم رنگ‌های بیشتری اضافه کنم، یا ستون‌های دیگه‌ای (مثل کد HSL یا CMYK) هم بهش اضافه کنم. 😊
-`;
 
 const EMOJIS = [
   '😀','😁','😂','🤣','😊','😍','🤔','😎','🥳','😢','😡','👍','👎','👏','🙏','💪',
@@ -207,9 +30,9 @@ const TABLE_ALIGNS = {
   none: '---',
 };
 
-function buildTable(rows, cols, align) {
+function buildTable(rows, cols, align, headLabel = 'عنوان') {
   const mark = TABLE_ALIGNS[align] || '---';
-  const head = Array.from({ length: cols }, (_, i) => `عنوان ${i + 1}`).join(' | ');
+  const head = Array.from({ length: cols }, (_, i) => `${headLabel} ${i + 1}`).join(' | ');
   const sep = Array.from({ length: cols }, () => mark).join(' | ');
   const body = Array.from({ length: rows - 1 }, () =>
     Array.from({ length: cols }, () => ' ').join(' | ')
@@ -250,6 +73,7 @@ export default function Editor() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [clipPerm, setClipPerm] = useState('unknown');
+  const [lang, setLang] = useState('fa');
   const [lineHeight, setLineHeight] = useState(1.7);
   const [autoClean, setAutoClean] = useState(true);
   const [rliCopy, setRliCopy] = useState(true);
@@ -259,6 +83,9 @@ export default function Editor() {
   const [info, setInfo] = useState({ words: 0, chars: 0, line: 1, col: 1 });
   const [dragActive, setDragActive] = useState(false);
   const [dragValid, setDragValid] = useState(false);
+
+  const t = useMemo(() => translator(lang), [lang]);
+  const dir = dirOf(lang);
 
   const taRef = useRef(null);
   const resizeRef = useRef(null);
@@ -277,7 +104,14 @@ export default function Editor() {
     } catch {
       initial = '';
     }
-    setText(initial || SAMPLE);
+    let initialLang = 'fa';
+    try {
+      initialLang = localStorage.getItem('rtl-md-lang') || detectLang();
+    } catch {
+      initialLang = detectLang();
+    }
+    setLang(initialLang);
+    setText(initial || getSample(initialLang));
     setLoaded(true);
   }, []);
 
@@ -312,13 +146,13 @@ export default function Editor() {
     const h = histRef.current;
     clearTimeout(h.timer);
     if (h.index <= 0) {
-      setSaveState('چیزی برای بازگرداندن نیست');
+      setSaveState(t('history.nothingUndo'));
       return;
     }
     h.index -= 1;
     h.lock = true;
     setText(h.stack[h.index]);
-    setSaveState('یک مرحله به عقب ↩️');
+    setSaveState(t('history.wentBack'));
     syncHistoryFlags();
   };
 
@@ -326,13 +160,13 @@ export default function Editor() {
     const h = histRef.current;
     clearTimeout(h.timer);
     if (h.index >= h.stack.length - 1) {
-      setSaveState('چیزی برای انجام دوباره نیست');
+      setSaveState(t('history.nothingRedo'));
       return;
     }
     h.index += 1;
     h.lock = true;
     setText(h.stack[h.index]);
-    setSaveState('یک مرحله به جلو ↪️');
+    setSaveState(t('history.wentForward'));
     syncHistoryFlags();
   };
 
@@ -340,13 +174,13 @@ export default function Editor() {
   useEffect(() => {
     if (!loaded) return;
     clearTimeout(saveTimer.current);
-    setSaveState('در حال ذخیره…');
+    setSaveState(t('st.saving'));
     saveTimer.current = setTimeout(() => {
       try {
         if (autosave) localStorage.setItem(STORAGE_KEY, text);
-        setSaveState(autosave ? 'ذخیره شد ✓' : 'ذخیره خودکار خاموش');
+        setSaveState(autosave ? t('st.saved') : t('st.autosaveOff'));
       } catch {
-        setSaveState('خطا در ذخیره');
+        setSaveState(t('st.saveError'));
       }
     }, 500);
     return () => clearTimeout(saveTimer.current);
@@ -364,7 +198,18 @@ export default function Editor() {
   }, [text]);
 
   // --- render preview ---
-  const html = useMemo(() => sanitizeHtml(renderMarkdown(text)), [text]);
+  const html = useMemo(
+    () =>
+      sanitizeHtml(
+        renderMarkdown(text, {
+          code: t('copy.code'),
+          table: t('copy.table'),
+          codeTitle: t('copy.code'),
+          tableTitle: t('copy.table'),
+        })
+      ),
+    [text, t]
+  );
 
   // --- کپی کد/جدول از داخل پیش‌نمایش (دکمه‌ها مستقیماً در HTML تولید می‌شوند) ---
   const onPreviewClick = useCallback(async (e) => {
@@ -379,19 +224,19 @@ export default function Editor() {
       await navigator.clipboard.writeText(value);
       btn.classList.add('done');
       if (icoEl) icoEl.textContent = '✓';
-      if (labelEl) labelEl.textContent = 'کپی شد';
-      setSaveState('کپی شد ✓');
+      if (labelEl) labelEl.textContent = t('copy.done');
+      setSaveState(t('st.copied'));
     } catch {
       btn.classList.add('failed');
       if (icoEl) icoEl.textContent = '⚠️';
-      if (labelEl) labelEl.textContent = 'خطا';
+      if (labelEl) labelEl.textContent = t('copy.error');
     }
     setTimeout(() => {
       btn.classList.remove('done', 'failed');
       if (icoEl) icoEl.textContent = '📋';
       if (labelEl) labelEl.textContent = original;
     }, 1600);
-  }, []);
+  }, [t]);
 
   // --- generic selection transform ---
   const transformSelection = useCallback(
@@ -413,7 +258,7 @@ export default function Editor() {
     [text]
   );
 
-  const wrap = (open, close = open, placeholder = 'متن') =>
+  const wrap = (open, close = open, placeholder = t('ph.text')) =>
     transformSelection((before, sel, after) => {
       const inner = sel || placeholder;
       const t = before + open + inner + close + after;
@@ -455,8 +300,8 @@ export default function Editor() {
     bold: () => wrap('**'),
     italic: () => wrap('*'),
     strike: () => wrap('~~'),
-    code: () => wrap('`', '`', 'کد'),
-    codeBlock: () => insertBlock('```\nکد شما اینجا\n```'),
+    code: () => wrap('`', '`', t('ph.code')),
+    codeBlock: () => insertBlock(t('ph.codeBlock')),
     quote: () => lineOp('> '),
     ul: () => lineOp('- '),
     ol: () => lineOp('1. '),
@@ -467,7 +312,7 @@ export default function Editor() {
     hr: () => insertBlock('---'),
     link: () =>
       transformSelection((before, sel, after) => {
-        const inner = sel || 'متن لینک';
+        const inner = sel || t('ph.linkText');
         const t = before + `[${inner}](https://) ` + after;
         const urlStart = before.length + inner.length + 3;
         const urlEnd = urlStart + 'https://'.length;
@@ -475,7 +320,7 @@ export default function Editor() {
       }),
     image: () =>
       transformSelection((before, sel, after) => {
-        const inner = sel || 'توضیح تصویر';
+        const inner = sel || t('ph.imageAlt');
         const t = before + `![${inner}](https://) ` + after;
         const urlStart = before.length + inner.length + 4;
         const urlEnd = urlStart + 'https://'.length;
@@ -491,7 +336,7 @@ export default function Editor() {
     emoji: (e) => insertAtCursor(e),
     tableInsert: () => {
       if (tableTab === 'make') {
-        insertAtCursor('\n' + buildTable(tRows, tCols, tAlign) + '\n');
+        insertAtCursor('\n' + buildTable(tRows, tCols, tAlign, t('ph.tableHeader')) + '\n');
       } else {
         insertAtCursor('\n' + tsvToTable(tsvInput) + '\n');
       }
@@ -513,7 +358,7 @@ export default function Editor() {
       await navigator.clipboard.writeText(buildClipboardText(t));
       setSaveState('کپی شد ✓');
     } catch {
-      setSaveState('خطا در کپی');
+      setSaveState(t('st.copyError'));
     }
   };
 
@@ -590,7 +435,7 @@ export default function Editor() {
     setDragActive(false);
     const f = e.dataTransfer.files?.[0];
     if (f && isSupportedFile(f.name)) {
-      f.text().then((t) => setText(t)).catch(() => setSaveState('خطا در خواندن فایل'));
+      f.text().then((t) => setText(t)).catch(() => setSaveState(t('st.fileError')));
     }
   };
 
@@ -630,7 +475,7 @@ export default function Editor() {
     if (!el) return;
     el.value = '';
     el.focus();
-    setSaveState('اجازه داده نشد — یک‌بار Ctrl+V را بزنید');
+    setSaveState(t('st.pressCtrlV'));
   };
 
   const onCatcherPaste = (e) => {
@@ -641,27 +486,27 @@ export default function Editor() {
     const data = clean(e.clipboardData.getData('text'));
     if (mode === 'replace') {
       setText(data);
-      setSaveState('پاک و چسبانده شد ✓');
+      setSaveState(t('st.clearedPasted'));
     } else {
       setText((prev) => prev + data);
-      setSaveState('چسبانده شد ✓');
+      setSaveState(t('st.pasted'));
     }
     requestAnimationFrame(() => taRef.current?.focus());
   };
 
   const quickClear = () => {
     setText('');
-    setSaveState('متن پاک شد ✓');
+    setSaveState(t('st.cleared'));
     requestAnimationFrame(() => taRef.current?.focus());
   };
 
   const quickPaste = () => {
     const p = readClipboardNow(); // بدون هیچ await قبل از آن
-    setSaveState('در حال خواندن کلیپ‌بورد…');
+    setSaveState(t('st.reading'));
     p.then((raw) => {
       const clip = clean(raw);
       if (!clip) {
-        setSaveState('کلیپ‌بورد خالی است');
+        setSaveState(t('st.clipEmpty'));
         return;
       }
       insertAtCursor(clip);
@@ -773,10 +618,30 @@ export default function Editor() {
     document.documentElement.setAttribute('data-theme', theme);
   }, []);
 
+  useEffect(() => {
+    if (!loaded) return;
+    document.documentElement.setAttribute('lang', lang);
+    document.documentElement.setAttribute('dir', dirOf(lang));
+    try {
+      localStorage.setItem('rtl-md-lang', lang);
+    } catch {
+      /* ذخیره‌سازی در دسترس نیست */
+    }
+  }, [lang, loaded]);
+
+  // اگر کاربر هنوز چیزی ننوشته باشد، با تغییر زبان متن نمونه هم عوض می‌شود
+  const switchLang = (code) => {
+    const wasSample = LANGS.some((l) => getSample(l.code) === text);
+    setLang(code);
+    if (wasSample || !text.trim()) setText(getSample(code));
+  };
+
   return (
     <div
       className="editor-root"
       data-theme={theme}
+      dir={dir}
+      lang={lang}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
@@ -787,21 +652,21 @@ export default function Editor() {
         <div className="brand">
           <span className="logo">✍️</span>
           <div className="brand-text">
-            <strong>ویرایشگر مارک‌داون</strong>
-            <small>RTL Markdown Editor</small>
+            <strong>{t('app.title')}</strong>
+            <small>{t('app.subtitle')}</small>
           </div>
         </div>
 
-        <div className="mode-switch" role="group" aria-label="حالت نمایش">
-          <button className={mode === 'split' ? 'on' : ''} onClick={() => setMode('split')}>تقسیم</button>
-          <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')}>ویرایش</button>
-          <button className={mode === 'preview' ? 'on' : ''} onClick={() => setMode('preview')}>پیش‌نمایش</button>
+        <div className="mode-switch" role="group" aria-label={t('mode.aria')}>
+          <button className={mode === 'split' ? 'on' : ''} onClick={() => setMode('split')}>{t('mode.split')}</button>
+          <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')}>{t('mode.edit')}</button>
+          <button className={mode === 'preview' ? 'on' : ''} onClick={() => setMode('preview')}>{t('mode.preview')}</button>
         </div>
 
         <div className="toolbar-right">
           <button
             className={`tool burger ${menuOpen ? 'open' : ''}`}
-            title={menuOpen ? 'بستن منو' : 'باز کردن منو'}
+            title={menuOpen ? t('menu.close') : t('menu.open')}
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen((o) => !o)}
           >
@@ -813,22 +678,39 @@ export default function Editor() {
       {/* ===== منوی همبرگری ===== */}
       {menuOpen && (
         <div className="menu-panel" role="menu">
-          <button className="menu-item" onClick={() => { importFile(); setMenuOpen(false); }}>📂 باز کردن فایل <small>Ctrl+O</small></button>
-          <button className="menu-item" onClick={() => { copyText(text); setMenuOpen(false); }}>📋 کپی کل متن</button>
-          <button className="menu-item" onClick={() => { download(text, 'document.md', 'text/markdown'); setMenuOpen(false); }}>⬇️ دانلود مارک‌داون</button>
-          <button className="menu-item" onClick={() => { download(sanitizeHtml(renderMarkdown(text)), 'document.html', 'text/html'); setMenuOpen(false); }}>🖨️ دانلود HTML</button>
+          <button className="menu-item" onClick={() => { importFile(); setMenuOpen(false); }}>{t('menu.openFile')} <small>Ctrl+O</small></button>
+          <button className="menu-item" onClick={() => { copyText(text); setMenuOpen(false); }}>{t('menu.copyAll')}</button>
+          <button className="menu-item" onClick={() => { download(text, 'document.md', 'text/markdown'); setMenuOpen(false); }}>{t('menu.downloadMd')}</button>
+          <button className="menu-item" onClick={() => { download(sanitizeHtml(renderMarkdown(text)), 'document.html', 'text/html'); setMenuOpen(false); }}>{t('menu.downloadHtml')}</button>
           <div className="menu-sep" />
-          <button className="menu-item danger" onClick={() => { quickClear(); setMenuOpen(false); }}>🗑️ پاک کردن همه</button>
-          <button className="menu-item" onClick={() => { toggleTheme(); }}>{theme === 'light' ? '🌙 تم تیره' : '☀️ تم روشن'}</button>
-          <button className="menu-item" onClick={() => { setShowSettings((v) => !v); setMenuOpen(false); }}>⚙️ تنظیمات</button>
+          <div className="menu-langs" role="group" aria-label={t('menu.language')}>
+            <span className="menu-langs-title">{t('menu.language')}</span>
+            <div className="lang-buttons">
+              {LANGS.map((l) => (
+                <button
+                  key={l.code}
+                  className={`lang-btn ${lang === l.code ? 'on' : ''}`}
+                  onClick={() => switchLang(l.code)}
+                  lang={l.code}
+                  dir={l.dir}
+                >
+                  <span>{l.flag}</span> {l.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="menu-sep" />
+          <button className="menu-item danger" onClick={() => { quickClear(); setMenuOpen(false); }}>{t('menu.clearAll')}</button>
+          <button className="menu-item" onClick={() => { toggleTheme(); }}>{theme === 'light' ? t('menu.themeDark') : t('menu.themeLight')}</button>
+          <button className="menu-item" onClick={() => { setShowSettings((v) => !v); setMenuOpen(false); }}>{t('menu.settings')}</button>
         </div>
       )}
 
       {/* ===== هدر دوم ثابت: دسترسی سریع ===== */}
-      <div className="quickbar" role="toolbar" aria-label="دسترسی سریع">
+      <div className="quickbar" role="toolbar" aria-label={t('quick.aria')}>
         {/* ناحیه‌ی راست: زوم */}
         <div className="qb-side qb-zoom">
-          <button className="zoom-btn" title="کوچک‌تر کردن متن" onClick={() => setZoom((z) => Math.max(60, z - 10))}>➖</button>
+          <button className="zoom-btn" title={t('zoom.out')} onClick={() => setZoom((z) => Math.max(60, z - 10))}>➖</button>
           <input
             className="zoom-range"
             type="range"
@@ -836,26 +718,26 @@ export default function Editor() {
             max="200"
             step="5"
             value={zoom}
-            title="اهرم بزرگ‌نمایی متن"
-            aria-label="بزرگ‌نمایی متن"
+            title={t('zoom.slider')}
+            aria-label={t('zoom.aria')}
             onChange={(e) => setZoom(+e.target.value)}
           />
-          <button className="zoom-btn" title="بزرگ‌تر کردن متن" onClick={() => setZoom((z) => Math.min(200, z + 10))}>➕</button>
-          <button className="zoom-val" title="بازگشت به اندازه‌ی عادی" onClick={() => setZoom(100)}>{zoom}٪</button>
+          <button className="zoom-btn" title={t('zoom.in')} onClick={() => setZoom((z) => Math.min(200, z + 10))}>➕</button>
+          <button className="zoom-val" title={t('zoom.reset')} onClick={() => setZoom(100)}>{zoom}٪</button>
         </div>
 
         {/* ناحیه‌ی وسط: اقدام‌های اصلی */}
         <div className="qb-center">
-          <button className="qbtn qbtn-red" title="پاک کردن کل متن (بدون تاییدیه)" onClick={quickClear}>🗑️ پاک کردن</button>
-          <button className="qbtn qbtn-green" title="چسباندن از کلیپ‌بورد در محل نشانگر" onClick={quickPaste}>📥 چسباندن</button>
-          <button className="qbtn qbtn-amber" title="پاک کردن کل متن و چسباندن خودکار محتوای کلیپ‌بورد" onClick={quickClearAndPaste}>♻️ پاک کردن و چسباندن</button>
-          <button className="qbtn qbtn-blue" title="کپی کل متن ویرایشگر" onClick={quickCopy}>📋 کپی</button>
+          <button className="qbtn qbtn-red" title={t('quick.clearTitle')} onClick={quickClear}>{t('quick.clear')}</button>
+          <button className="qbtn qbtn-green" title={t('quick.pasteTitle')} onClick={quickPaste}>{t('quick.paste')}</button>
+          <button className="qbtn qbtn-amber" title={t('quick.clearPasteTitle')} onClick={quickClearAndPaste}>{t('quick.clearPaste')}</button>
+          <button className="qbtn qbtn-blue" title={t('quick.copyTitle')} onClick={quickCopy}>{t('quick.copy')}</button>
           <button
             className="qbtn qbtn-purple"
-            title="حل مسئله چپ به راست بودن اعداد اسلش دار (اصلاح جهت متن فارسی)"
+            title={t('quick.fixTitle')}
             onClick={actions.fix}
           >
-            🔁 حل مسئله چپ به راست بودن اعداد اسلش دار
+            {t('quick.fix')}
           </button>
         </div>
 
@@ -863,19 +745,19 @@ export default function Editor() {
         <div className="qb-side qb-history">
           <button
             className="hbtn"
-            title="بازگرداندن آخرین تغییر (Ctrl+Z)"
+            title={t('history.undoTitle')}
             onClick={undo}
             disabled={!canUndo}
           >
-            <span className="hico">↩️</span> بازگرداندن
+            <span className="hico">↩️</span> {t('history.undo')}
           </button>
           <button
             className="hbtn"
-            title="انجام دوباره‌ی تغییر بازگردانده‌شده (Ctrl+Y)"
+            title={t('history.redoTitle')}
             onClick={redo}
             disabled={!canRedo}
           >
-            <span className="hico">↪️</span> انجام دوباره
+            <span className="hico">↪️</span> {t('history.redo')}
           </button>
         </div>
       </div>
@@ -884,42 +766,42 @@ export default function Editor() {
       {showTable && (
         <div className="popover table-popover">
           <div className="tabs">
-            <button className={tableTab === 'make' ? 'on' : ''} onClick={() => setTableTab('make')}>ساخت جدول</button>
-            <button className={tableTab === 'convert' ? 'on' : ''} onClick={() => setTableTab('convert')}>تبدیل CSV/TSV</button>
+            <button className={tableTab === 'make' ? 'on' : ''} onClick={() => setTableTab('make')}>{t('table.make')}</button>
+            <button className={tableTab === 'convert' ? 'on' : ''} onClick={() => setTableTab('convert')}>{t('table.convert')}</button>
           </div>
           {tableTab === 'make' ? (
             <div className="table-make">
               <label>
-                سطرها
+                {t('table.rows')}
                 <input type="number" min="2" max="20" value={tRows}
                   onChange={(e) => setTRows(Math.max(2, Math.min(20, +e.target.value)))} />
               </label>
               <label>
-                ستون‌ها
+                {t('table.cols')}
                 <input type="number" min="1" max="10" value={tCols}
                   onChange={(e) => setTCols(Math.max(1, Math.min(10, +e.target.value)))} />
               </label>
               <label>
-                تراز
+                {t('table.align')}
                 <select value={tAlign} onChange={(e) => setTAlign(e.target.value)}>
-                  <option value="right">راست</option>
-                  <option value="center">وسط</option>
-                  <option value="left">چپ</option>
-                  <option value="none">ساده</option>
+                  <option value="right">{t('table.alignRight')}</option>
+                  <option value="center">{t('table.alignCenter')}</option>
+                  <option value="left">{t('table.alignLeft')}</option>
+                  <option value="none">{t('table.alignNone')}</option>
                 </select>
               </label>
-              <button className="primary" onClick={actions.tableInsert}>درج جدول</button>
-              <pre className="live-table">{buildTable(tRows, tCols, tAlign)}</pre>
+              <button className="primary" onClick={actions.tableInsert}>{t('table.insert')}</button>
+              <pre className="live-table">{buildTable(tRows, tCols, tAlign, t('ph.tableHeader'))}</pre>
             </div>
           ) : (
             <div className="table-convert">
               <textarea
                 rows="5"
-                placeholder={'متن جدا با تب (TSV) یا CSV را اینجا بچسبانید…\nمثلاً:\nنام\tقیمت\nقلم\t۵۰۰۰'}
+                placeholder={t('ph.tsv')}
                 value={tsvInput}
                 onChange={(e) => setTsvInput(e.target.value)}
               />
-              <button className="primary" onClick={actions.tableInsert}>تبدیل به جدول</button>
+              <button className="primary" onClick={actions.tableInsert}>{t('table.convertBtn')}</button>
             </div>
           )}
         </div>
@@ -938,30 +820,30 @@ export default function Editor() {
       {showSettings && (
         <div className="popover settings-popover">
           <label>
-            اندازه قلم ویرایشگر
+            {t('set.fontSize')}
             <input type="range" min="12" max="28" value={fontSize}
               onChange={(e) => setFontSize(+e.target.value)} />
             <span>{fontSize}px</span>
           </label>
           <label>
-            فاصله خطوط
+            {t('set.lineHeight')}
             <input type="range" min="1.2" max="2.4" step="0.1" value={lineHeight}
               onChange={(e) => setLineHeight(+e.target.value)} />
             <span>{lineHeight}</span>
           </label>
           <label className="switch-row">
-            <span>پاک‌سازی خودکار متن چسبانده‌شده</span>
+            <span>{t('set.autoClean')}</span>
             <input type="checkbox" checked={autoClean} onChange={(e) => setAutoClean(e.target.checked)} />
           </label>
           <label className="switch-row">
-            <span>بسته‌بندی RTL هنگام کپی (برای اپ‌های چت)</span>
+            <span>{t('set.rliCopy')}</span>
             <input type="checkbox" checked={rliCopy} onChange={(e) => setRliCopy(e.target.checked)} />
           </label>
           <label className="switch-row">
-            <span>ذخیره خودکار (مرورگر)</span>
+            <span>{t('set.autosave')}</span>
             <input type="checkbox" checked={autosave} onChange={(e) => setAutosave(e.target.checked)} />
           </label>
-          <button className="primary" onClick={() => download(SAMPLE, 'نمونه.md', 'text/markdown')}>دانلود متن نمونه</button>
+          <button className="primary" onClick={() => download(getSample(lang), t('set.sampleFile'), 'text/markdown')}>{t('set.downloadSample')}</button>
         </div>
       )}
 
@@ -969,35 +851,35 @@ export default function Editor() {
       <main className="body" ref={containerRef}>
         {(mode === 'split' || mode === 'edit') && (
           <section className="pane editor-pane" style={{ flex: mode === 'edit' ? '1' : undefined, width: mode === 'edit' ? '100%' : `${split}%` }}>
-            <div className="format-bar" role="toolbar" aria-label="ابزار ویرایش">
-              <button className="tool" title="برگردان (Ctrl+Z)" onClick={actions.undo}>↩️</button>
-              <button className="tool" title="بازگردانی (Ctrl+Y)" onClick={actions.redo}>↪️</button>
+            <div className="format-bar" role="toolbar" aria-label={t('fmt.aria')}>
+              <button className="tool" title={t('fmt.undo')} onClick={actions.undo}>↩️</button>
+              <button className="tool" title={t('fmt.redo')} onClick={actions.redo}>↪️</button>
               <div className="sep" />
-              <button className="tool" title="تیتر ۱" onClick={actions.h1}>H1</button>
-              <button className="tool" title="تیتر ۲" onClick={actions.h2}>H2</button>
-              <button className="tool" title="تیتر ۳" onClick={actions.h3}>H3</button>
+              <button className="tool" title={t('fmt.h1')} onClick={actions.h1}>H1</button>
+              <button className="tool" title={t('fmt.h2')} onClick={actions.h2}>H2</button>
+              <button className="tool" title={t('fmt.h3')} onClick={actions.h3}>H3</button>
               <div className="sep" />
-              <button className="tool" title="بولد (Ctrl+B)" onClick={actions.bold}><b>ب</b></button>
-              <button className="tool" title="ایتالیک (Ctrl+I)" onClick={actions.italic}><i>ایت</i></button>
-              <button className="tool" title="خط‌خورده (Ctrl+Shift+X)" onClick={actions.strike}><s>خط</s></button>
-              <button className="tool" title="کد درون‌خطی" onClick={actions.code}>`کد`</button>
-              <button className="tool" title="بلاک کد (Ctrl+E)" onClick={actions.codeBlock}>{'</>'}</button>
+              <button className="tool" title={t('fmt.bold')} onClick={actions.bold}><b>{t('fmt.boldLabel')}</b></button>
+              <button className="tool" title={t('fmt.italic')} onClick={actions.italic}><i>{t('fmt.italicLabel')}</i></button>
+              <button className="tool" title={t('fmt.strike')} onClick={actions.strike}><s>{t('fmt.strikeLabel')}</s></button>
+              <button className="tool" title={t('fmt.code')} onClick={actions.code}>{t('fmt.codeLabel')}</button>
+              <button className="tool" title={t('fmt.codeBlock')} onClick={actions.codeBlock}>{'</>'}</button>
               <div className="sep" />
-              <button className="tool" title="نقل‌قول" onClick={actions.quote}>❝</button>
-              <button className="tool" title="لیست نقطه‌ای" onClick={actions.ul}>•</button>
-              <button className="tool" title="لیست شماره‌دار" onClick={actions.ol}>۱.</button>
-              <button className="tool" title="تکلیف" onClick={actions.task}>☑</button>
-              <button className="tool" title="خط جداکننده" onClick={actions.hr}>―</button>
+              <button className="tool" title={t('fmt.quote')} onClick={actions.quote}>❝</button>
+              <button className="tool" title={t('fmt.ul')} onClick={actions.ul}>•</button>
+              <button className="tool" title={t('fmt.ol')} onClick={actions.ol}>{t('fmt.olLabel')}</button>
+              <button className="tool" title={t('fmt.task')} onClick={actions.task}>☑</button>
+              <button className="tool" title={t('fmt.hr')} onClick={actions.hr}>―</button>
               <div className="sep" />
-              <button className="tool" title="لینک (Ctrl+K)" onClick={actions.link}>🔗</button>
-              <button className="tool" title="تصویر" onClick={actions.image}>🖼️</button>
-              <button className="tool" title="ساخت جدول / تبدیل CSV" onClick={() => { setShowTable((s) => !s); setShowEmoji(false); }}>⬛</button>
-              <button className="tool" title="ایموجی" onClick={() => { setShowEmoji((s) => !s); setShowTable(false); }}>😊</button>
+              <button className="tool" title={t('fmt.link')} onClick={actions.link}>🔗</button>
+              <button className="tool" title={t('fmt.image')} onClick={actions.image}>🖼️</button>
+              <button className="tool" title={t('fmt.table')} onClick={() => { setShowTable((s) => !s); setShowEmoji(false); }}>⬛</button>
+              <button className="tool" title={t('fmt.emoji')} onClick={() => { setShowEmoji((s) => !s); setShowTable(false); }}>😊</button>
             </div>
             <textarea
               ref={taRef}
               className="editor-area"
-              dir="rtl"
+              dir={dir}
               spellCheck="true"
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -1005,13 +887,13 @@ export default function Editor() {
               onPaste={onPaste}
               onSelect={() => setInfo((p) => p)}
               style={{ fontSize: `${Math.round((fontSize * zoom) / 100)}px`, lineHeight }}
-              placeholder="متن مارک‌داون خود را اینجا بنویسید…"
+              placeholder={t('ph.editor')}
             />
           </section>
         )}
 
         {mode === 'split' && (
-          <div className="divider" onMouseDown={onDividerDown} title="کشیدن برای تغییر اندازه">
+          <div className="divider" onMouseDown={onDividerDown} title={t('divider.title')}>
             <span>⋮</span>
           </div>
         )}
@@ -1021,7 +903,7 @@ export default function Editor() {
             <div
               ref={previewRef}
               className="preview-area markdown-body"
-              dir="rtl"
+              dir={dir}
               style={{ fontSize: `${Math.round((15 * zoom) / 100)}px` }}
               onClick={onPreviewClick}
               dangerouslySetInnerHTML={{ __html: html }}
@@ -1033,15 +915,15 @@ export default function Editor() {
       {/* ===== نوار وضعیت ===== */}
       <footer className="statusbar">
         <span className="mode-info">
-          {mode === 'edit' ? '✏️ ویرایش' : mode === 'preview' ? '👁️ پیش‌نمایش' : '✏️ ویرایش + 👁️ پیش‌نمایش'}
+          {mode === 'edit' ? t('mode.editLabel') : mode === 'preview' ? t('mode.previewLabel') : t('mode.both')}
         </span>
         <span className="dot">•</span>
-        <span className="hint">نوشتن سمت راست، نتیجه‌ی زنده سمت چپ</span>
+        <span className="hint">{t('foot.hint')}</span>
         <span className="dot">•</span>
-        <span>کلمات: <b>{info.words}</b></span>
-        <span>نویسه: <b>{info.chars}</b></span>
-        <span>خط <b>{info.line}</b> : ستون <b>{info.col}</b></span>
-        {clipPerm === 'granted' && <span title="مرورگر اجازه‌ی خواندن کلیپ‌بورد را داده؛ دیگر تاییدیه‌ای نشان داده نمی‌شود">کلیپ‌بورد: مجاز ✓</span>}
+        <span>{t('foot.words')} <b>{info.words}</b></span>
+        <span>{t('foot.chars')} <b>{info.chars}</b></span>
+        <span>{t('foot.line')} <b>{info.line}</b> {t('foot.col')} <b>{info.col}</b></span>
+        {clipPerm === 'granted' && <span title={t('st.clipAllowedTitle')}>{t('st.clipAllowed')}</span>}
         <span className="grow" />
         <span className={`save ${saveState.startsWith('خطا') ? 'err' : ''}`}>{saveState}</span>
       </footer>
@@ -1061,8 +943,8 @@ export default function Editor() {
         <div className={`drop-overlay ${dragValid ? 'valid' : 'invalid'}`}>
           <div className="drop-box">
             {dragValid
-              ? '📂 رها کنید — فایل پشتیبانی‌شده'
-              : 'فقط فایل‌های .md و .txt مجاز است'}
+              ? t('drop.valid')
+              : t('drop.invalid')}
           </div>
         </div>
       )}
