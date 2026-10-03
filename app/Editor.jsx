@@ -101,6 +101,8 @@ export default function Editor() {
   const resizeRef = useRef(null);
   const saveTimer = useRef(null);
   const dragDepth = useRef(0);
+  const pasteCatcherRef = useRef(null);
+  const pendingPaste = useRef(null);
 
   // --- load initial ---
   useEffect(() => {
@@ -349,9 +351,46 @@ export default function Editor() {
   };
 
   // --- اقدام‌های نوار دسترسی سریع (هدر دوم) ---
+  const clean = useCallback((raw) => (autoClean ? fixRTLText(raw) : raw), [autoClean]);
+
+  // اجازه‌ی خواندن کلیپ‌بورد را زودهنگام می‌گیریم تا مرورگر هر بار تاییدیه نشان ندهد
+  useEffect(() => {
+    try {
+      navigator.permissions?.query?.({ name: 'clipboard-read' }).catch(() => {});
+    } catch {
+      /* بعضی مرورگرها این نام مجوز را نمی‌شناسند */
+    }
+  }, []);
+
   const readClipboard = async () => {
     const raw = await navigator.clipboard.readText();
-    return autoClean ? fixRTLText(raw) : raw;
+    return clean(raw);
+  };
+
+  // اگر مرورگر خواندن مستقیم کلیپ‌بورد را اجازه ندهد، با یک فیلد مخفی و Ctrl+V ادامه می‌دهیم
+  const fallbackPaste = (mode) => {
+    pendingPaste.current = mode;
+    const el = pasteCatcherRef.current;
+    if (!el) return;
+    el.value = '';
+    el.focus();
+    setSaveState('برای چسباندن Ctrl+V را بزنید');
+  };
+
+  const onCatcherPaste = (e) => {
+    const mode = pendingPaste.current;
+    if (!mode) return;
+    e.preventDefault();
+    pendingPaste.current = null;
+    const data = clean(e.clipboardData.getData('text'));
+    if (mode === 'replace') {
+      setText(data);
+      setSaveState('پاک و چسبانده شد ✓');
+    } else {
+      setText((prev) => prev + data);
+      setSaveState('چسبانده شد ✓');
+    }
+    requestAnimationFrame(() => taRef.current?.focus());
   };
 
   const quickClear = () => {
@@ -367,18 +406,20 @@ export default function Editor() {
       insertAtCursor(clip);
       setSaveState('چسبانده شد ✓');
     } catch {
-      setSaveState('خطا در خواندن کلیپ‌بورد');
+      fallbackPaste('insert');
     }
   };
 
   const quickClearAndPaste = async () => {
+    // اول فوری پاک می‌کنیم تا بدون هیچ مرحله‌ی اضافه، نتیجه بلافاصله دیده شود
+    setText('');
     try {
       const clip = await readClipboard();
       setText(clip);
       setSaveState('پاک و چسبانده شد ✓');
       requestAnimationFrame(() => taRef.current?.focus());
     } catch {
-      setSaveState('خطا در خواندن کلیپ‌بورد');
+      fallbackPaste('replace');
     }
   };
 
@@ -668,6 +709,16 @@ export default function Editor() {
         <span className="grow" />
         <span className={`save ${saveState.startsWith('خطا') ? 'err' : ''}`}>{saveState}</span>
       </footer>
+
+      {/* ===== گیرنده‌ی مخفی برای چسباندن در مرورگرهای بدون دسترسی مستقیم ===== */}
+      <textarea
+        ref={pasteCatcherRef}
+        className="paste-catcher"
+        tabIndex={-1}
+        aria-hidden="true"
+        onPaste={onCatcherPaste}
+        onBlur={() => { pendingPaste.current = null; }}
+      />
 
       {/* ===== نشانگر درگ‌اند‌دراپ ===== */}
       {dragActive && (
