@@ -99,6 +99,12 @@ button {
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+  flex: 1 1 0;
+}
+
+.toolbar .mode-switch {
+  margin: 0 auto;
+  flex: 0 0 auto;
 }
 
 .brand .logo {
@@ -132,11 +138,175 @@ button {
   scrollbar-width: thin;
 }
 
+
+/* ===== چیدمان سه‌ناحیه‌ای هدر دوم ===== */
+.qb-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.qb-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+/* --- زوم (سمت راست) --- */
+.zoom-btn,
+.zoom-val {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.zoom-btn:hover,
+.zoom-val:hover {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-2));
+}
+
+.zoom-val {
+  min-width: 48px;
+  color: var(--muted);
+}
+
+.zoom-range {
+  width: 110px;
+  accent-color: var(--accent);
+  cursor: ew-resize;
+}
+
+/* --- بازگرداندن / انجام دوباره (سمت چپ) --- */
+.hbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s, transform 0.08s;
+}
+
+.hbtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+}
+
+.hbtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.hbtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hbtn .hico {
+  font-size: 13px;
+}
+
+/* ===== منوی همبرگری ===== */
+.tool.burger {
+  font-size: 19px;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.tool.burger.open {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.menu-panel {
+  position: absolute;
+  top: 54px;
+  left: 12px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 230px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.menu-item:hover {
+  background: var(--surface-2);
+}
+
+.menu-item small {
+  font-size: 11px;
+  color: var(--muted);
+  direction: ltr;
+}
+
+.menu-item.danger {
+  color: #dc2626;
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--border);
+}
+
+@media (max-width: 860px) {
+  .qb-side {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .qb-center {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+
 /* ===== هدر دوم ثابت (نوار دسترسی سریع) ===== */
 .quickbar {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
   padding: 6px 12px;
@@ -206,8 +376,10 @@ button {
 .toolbar-right {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 3px;
   white-space: nowrap;
+  flex: 1 1 0;
 }
 
 .sep {

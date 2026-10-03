@@ -245,6 +245,10 @@ export default function Editor() {
   const [showEmoji, setShowEmoji] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [fontSize, setFontSize] = useState(16);
+  const [zoom, setZoom] = useState(100);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const [lineHeight, setLineHeight] = useState(1.7);
   const [autoClean, setAutoClean] = useState(true);
   const [rliCopy, setRliCopy] = useState(true);
@@ -261,6 +265,7 @@ export default function Editor() {
   const dragDepth = useRef(0);
   const pasteCatcherRef = useRef(null);
   const previewRef = useRef(null);
+  const histRef = useRef({ stack: [], index: -1, lock: false, timer: null });
   const pendingPaste = useRef(null);
 
   // --- load initial ---
@@ -274,6 +279,61 @@ export default function Editor() {
     setText(initial || SAMPLE);
     setLoaded(true);
   }, []);
+
+  // --- تاریخچه‌ی بازگرداندن/انجام دوباره (برای همه‌ی عملیات، نه فقط تایپ) ---
+  const syncHistoryFlags = () => {
+    const h = histRef.current;
+    setCanUndo(h.index > 0);
+    setCanRedo(h.index < h.stack.length - 1);
+  };
+
+  useEffect(() => {
+    if (!loaded) return;
+    const h = histRef.current;
+    if (h.lock) {
+      h.lock = false;
+      syncHistoryFlags();
+      return;
+    }
+    clearTimeout(h.timer);
+    h.timer = setTimeout(() => {
+      if (h.stack[h.index] === text) return;
+      h.stack = h.stack.slice(0, h.index + 1);
+      h.stack.push(text);
+      if (h.stack.length > 200) h.stack.shift();
+      h.index = h.stack.length - 1;
+      syncHistoryFlags();
+    }, 350);
+    return () => clearTimeout(h.timer);
+  }, [text, loaded]);
+
+  const undo = () => {
+    const h = histRef.current;
+    clearTimeout(h.timer);
+    if (h.index <= 0) {
+      setSaveState('چیزی برای بازگرداندن نیست');
+      return;
+    }
+    h.index -= 1;
+    h.lock = true;
+    setText(h.stack[h.index]);
+    setSaveState('یک مرحله به عقب ↩️');
+    syncHistoryFlags();
+  };
+
+  const redo = () => {
+    const h = histRef.current;
+    clearTimeout(h.timer);
+    if (h.index >= h.stack.length - 1) {
+      setSaveState('چیزی برای انجام دوباره نیست');
+      return;
+    }
+    h.index += 1;
+    h.lock = true;
+    setText(h.stack[h.index]);
+    setSaveState('یک مرحله به جلو ↪️');
+    syncHistoryFlags();
+  };
 
   // --- autosave ---
   useEffect(() => {
@@ -437,8 +497,8 @@ export default function Editor() {
       setShowTable(false);
       setTsvInput('');
     },
-    undo: () => document.execCommand('undo'),
-    redo: () => document.execCommand('redo'),
+    undo: () => undo(),
+    redo: () => redo(),
   };
 
   // --- copy / download ---
@@ -701,37 +761,92 @@ export default function Editor() {
           </div>
         </div>
 
-        <div className="toolbar-scroll" />
+        <div className="mode-switch" role="group" aria-label="حالت نمایش">
+          <button className={mode === 'split' ? 'on' : ''} onClick={() => setMode('split')}>تقسیم</button>
+          <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')}>ویرایش</button>
+          <button className={mode === 'preview' ? 'on' : ''} onClick={() => setMode('preview')}>پیش‌نمایش</button>
+        </div>
 
         <div className="toolbar-right">
-          <div className="mode-switch" role="group" aria-label="حالت نمایش">
-            <button className={mode === 'split' ? 'on' : ''} onClick={() => setMode('split')}>تقسیم</button>
-            <button className={mode === 'edit' ? 'on' : ''} onClick={() => setMode('edit')}>ویرایش</button>
-            <button className={mode === 'preview' ? 'on' : ''} onClick={() => setMode('preview')}>پیش‌نمایش</button>
-          </div>
-          <button className="tool" title="باز کردن فایل (Ctrl+O)" onClick={importFile}>📂 باز کردن</button>
-          <button className="tool" title="کپی متن" onClick={() => copyText(text)}>📋</button>
-          <button className="tool" title="دانلود MD" onClick={() => download(text, 'document.md', 'text/markdown')}>⬇️</button>
-          <button className="tool" title="دانلود HTML" onClick={() => download(sanitizeHtml(renderMarkdown(text)), 'document.html', 'text/html')}>🖨️</button>
-          <button className="tool" title="پاک کردن همه" onClick={() => { if (confirm('همه‌ی متن پاک شود؟')) setText(''); }}>🗑️</button>
-          <button className="tool" title="تغییر تم" onClick={toggleTheme}>{theme === 'light' ? '🌙' : '☀️'}</button>
-          <button className="tool" title="تنظیمات" onClick={() => { setShowSettings((s) => !s); }}>⚙️</button>
+          <button
+            className={`tool burger ${menuOpen ? 'open' : ''}`}
+            title={menuOpen ? 'بستن منو' : 'باز کردن منو'}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            {menuOpen ? '✕' : '☰'}
+          </button>
         </div>
       </header>
 
+      {/* ===== منوی همبرگری ===== */}
+      {menuOpen && (
+        <div className="menu-panel" role="menu">
+          <button className="menu-item" onClick={() => { importFile(); setMenuOpen(false); }}>📂 باز کردن فایل <small>Ctrl+O</small></button>
+          <button className="menu-item" onClick={() => { copyText(text); setMenuOpen(false); }}>📋 کپی کل متن</button>
+          <button className="menu-item" onClick={() => { download(text, 'document.md', 'text/markdown'); setMenuOpen(false); }}>⬇️ دانلود مارک‌داون</button>
+          <button className="menu-item" onClick={() => { download(sanitizeHtml(renderMarkdown(text)), 'document.html', 'text/html'); setMenuOpen(false); }}>🖨️ دانلود HTML</button>
+          <div className="menu-sep" />
+          <button className="menu-item danger" onClick={() => { quickClear(); setMenuOpen(false); }}>🗑️ پاک کردن همه</button>
+          <button className="menu-item" onClick={() => { toggleTheme(); }}>{theme === 'light' ? '🌙 تم تیره' : '☀️ تم روشن'}</button>
+          <button className="menu-item" onClick={() => { setShowSettings((v) => !v); setMenuOpen(false); }}>⚙️ تنظیمات</button>
+        </div>
+      )}
+
       {/* ===== هدر دوم ثابت: دسترسی سریع ===== */}
       <div className="quickbar" role="toolbar" aria-label="دسترسی سریع">
-        <button className="qbtn qbtn-red" title="پاک کردن کل متن (بدون تاییدیه)" onClick={quickClear}>🗑️ پاک کردن</button>
-        <button className="qbtn qbtn-green" title="چسباندن از کلیپ‌بورد در محل نشانگر" onClick={quickPaste}>📥 چسباندن</button>
-        <button className="qbtn qbtn-amber" title="پاک کردن کل متن و چسباندن محتوای کلیپ‌بورد" onClick={quickClearAndPaste}>♻️ پاک کردن و چسباندن</button>
-        <button className="qbtn qbtn-blue" title="کپی کل متن ویرایشگر" onClick={quickCopy}>📋 کپی</button>
-        <button
-          className="qbtn qbtn-purple"
-          title="حل مسئله چپ به راست بودن اعداد اسلش دار (اصلاح جهت متن فارسی)"
-          onClick={actions.fix}
-        >
-          🔁 حل مسئله چپ به راست بودن اعداد اسلش دار
-        </button>
+        {/* ناحیه‌ی راست: زوم */}
+        <div className="qb-side qb-zoom">
+          <button className="zoom-btn" title="کوچک‌تر کردن متن" onClick={() => setZoom((z) => Math.max(60, z - 10))}>➖</button>
+          <input
+            className="zoom-range"
+            type="range"
+            min="60"
+            max="200"
+            step="5"
+            value={zoom}
+            title="اهرم بزرگ‌نمایی متن"
+            aria-label="بزرگ‌نمایی متن"
+            onChange={(e) => setZoom(+e.target.value)}
+          />
+          <button className="zoom-btn" title="بزرگ‌تر کردن متن" onClick={() => setZoom((z) => Math.min(200, z + 10))}>➕</button>
+          <button className="zoom-val" title="بازگشت به اندازه‌ی عادی" onClick={() => setZoom(100)}>{zoom}٪</button>
+        </div>
+
+        {/* ناحیه‌ی وسط: اقدام‌های اصلی */}
+        <div className="qb-center">
+          <button className="qbtn qbtn-red" title="پاک کردن کل متن (بدون تاییدیه)" onClick={quickClear}>🗑️ پاک کردن</button>
+          <button className="qbtn qbtn-green" title="چسباندن از کلیپ‌بورد در محل نشانگر" onClick={quickPaste}>📥 چسباندن</button>
+          <button className="qbtn qbtn-amber" title="پاک کردن کل متن و چسباندن محتوای کلیپ‌بورد" onClick={quickClearAndPaste}>♻️ پاک کردن و چسباندن</button>
+          <button className="qbtn qbtn-blue" title="کپی کل متن ویرایشگر" onClick={quickCopy}>📋 کپی</button>
+          <button
+            className="qbtn qbtn-purple"
+            title="حل مسئله چپ به راست بودن اعداد اسلش دار (اصلاح جهت متن فارسی)"
+            onClick={actions.fix}
+          >
+            🔁 حل مسئله چپ به راست بودن اعداد اسلش دار
+          </button>
+        </div>
+
+        {/* ناحیه‌ی چپ: بازگرداندن / انجام دوباره */}
+        <div className="qb-side qb-history">
+          <button
+            className="hbtn"
+            title="بازگرداندن آخرین تغییر (Ctrl+Z)"
+            onClick={undo}
+            disabled={!canUndo}
+          >
+            <span className="hico">↩️</span> بازگرداندن
+          </button>
+          <button
+            className="hbtn"
+            title="انجام دوباره‌ی تغییر بازگردانده‌شده (Ctrl+Y)"
+            onClick={redo}
+            disabled={!canRedo}
+          >
+            <span className="hico">↪️</span> انجام دوباره
+          </button>
+        </div>
       </div>
 
       {/* ===== پاپ‌اور جدول ===== */}
@@ -858,7 +973,7 @@ export default function Editor() {
               onKeyDown={onKeyDown}
               onPaste={onPaste}
               onSelect={() => setInfo((p) => p)}
-              style={{ fontSize: `${fontSize}px`, lineHeight }}
+              style={{ fontSize: `${Math.round((fontSize * zoom) / 100)}px`, lineHeight }}
               placeholder="متن مارک‌داون خود را اینجا بنویسید…"
             />
           </section>
@@ -876,6 +991,7 @@ export default function Editor() {
               ref={previewRef}
               className="preview-area markdown-body"
               dir="rtl"
+              style={{ fontSize: `${Math.round((15 * zoom) / 100)}px` }}
               onClick={onPreviewClick}
               dangerouslySetInnerHTML={{ __html: html }}
             />
