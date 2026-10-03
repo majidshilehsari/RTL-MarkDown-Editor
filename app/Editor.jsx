@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify';
 import hljs from 'highlight.js/lib/common';
 import { fixRTLText, wrapForRTL, isMixedDirection } from '../lib/bidi';
 import { renderMarkdown, copyTargetText } from '../lib/markdown';
-import { LANGS, dirOf, detectLang, translator } from '../lib/i18n';
+import { LANGS, detectLang, translator } from '../lib/i18n';
 import { getSample } from '../lib/samples';
 
 function sanitizeHtml(raw) {
@@ -74,6 +74,7 @@ export default function Editor() {
   const [canRedo, setCanRedo] = useState(false);
   const [clipPerm, setClipPerm] = useState('unknown');
   const [lang, setLang] = useState('fa');
+  const [contentDir, setContentDir] = useState('rtl');
   const [lineHeight, setLineHeight] = useState(1.7);
   const [autoClean, setAutoClean] = useState(true);
   const [rliCopy, setRliCopy] = useState(true);
@@ -85,7 +86,9 @@ export default function Editor() {
   const [dragValid, setDragValid] = useState(false);
 
   const t = useMemo(() => translator(lang), [lang]);
-  const dir = dirOf(lang);
+  // جهت «رابط کاربری» همیشه راست‌به‌چپ است، چون هدف برنامه ویرایش متن RTL است.
+  // جهت «محتوا» هم به‌صورت پیش‌فرض RTL است و فقط از تنظیمات قابل تغییر است.
+  const uiDir = 'rtl';
 
   const taRef = useRef(null);
   const resizeRef = useRef(null);
@@ -621,7 +624,7 @@ export default function Editor() {
   useEffect(() => {
     if (!loaded) return;
     document.documentElement.setAttribute('lang', lang);
-    document.documentElement.setAttribute('dir', dirOf(lang));
+    document.documentElement.setAttribute('dir', 'rtl');
     try {
       localStorage.setItem('rtl-md-lang', lang);
     } catch {
@@ -640,7 +643,7 @@ export default function Editor() {
     <div
       className="editor-root"
       data-theme={theme}
-      dir={dir}
+      dir={uiDir}
       lang={lang}
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
@@ -664,6 +667,21 @@ export default function Editor() {
         </div>
 
         <div className="toolbar-right">
+          <div className="lang-switch" role="group" aria-label={t('menu.language')}>
+            {LANGS.map((l) => (
+              <button
+                key={l.code}
+                className={`lang-btn ${lang === l.code ? 'on' : ''}`}
+                onClick={() => switchLang(l.code)}
+                title={l.label}
+                lang={l.code}
+                dir={l.dir}
+              >
+                <span className="lang-flag">{l.flag}</span>
+                <span className="lang-name">{l.label}</span>
+              </button>
+            ))}
+          </div>
           <button
             className={`tool burger ${menuOpen ? 'open' : ''}`}
             title={menuOpen ? t('menu.close') : t('menu.open')}
@@ -682,23 +700,6 @@ export default function Editor() {
           <button className="menu-item" onClick={() => { copyText(text); setMenuOpen(false); }}>{t('menu.copyAll')}</button>
           <button className="menu-item" onClick={() => { download(text, 'document.md', 'text/markdown'); setMenuOpen(false); }}>{t('menu.downloadMd')}</button>
           <button className="menu-item" onClick={() => { download(sanitizeHtml(renderMarkdown(text)), 'document.html', 'text/html'); setMenuOpen(false); }}>{t('menu.downloadHtml')}</button>
-          <div className="menu-sep" />
-          <div className="menu-langs" role="group" aria-label={t('menu.language')}>
-            <span className="menu-langs-title">{t('menu.language')}</span>
-            <div className="lang-buttons">
-              {LANGS.map((l) => (
-                <button
-                  key={l.code}
-                  className={`lang-btn ${lang === l.code ? 'on' : ''}`}
-                  onClick={() => switchLang(l.code)}
-                  lang={l.code}
-                  dir={l.dir}
-                >
-                  <span>{l.flag}</span> {l.label}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="menu-sep" />
           <button className="menu-item danger" onClick={() => { quickClear(); setMenuOpen(false); }}>{t('menu.clearAll')}</button>
           <button className="menu-item" onClick={() => { toggleTheme(); }}>{theme === 'light' ? t('menu.themeDark') : t('menu.themeLight')}</button>
@@ -831,6 +832,13 @@ export default function Editor() {
               onChange={(e) => setLineHeight(+e.target.value)} />
             <span>{lineHeight}</span>
           </label>
+          <div className="switch-row dir-row">
+            <span>{t('set.contentDir')}</span>
+            <div className="dir-buttons">
+              <button className={contentDir === 'rtl' ? 'on' : ''} onClick={() => setContentDir('rtl')}>{t('set.dirRtl')}</button>
+              <button className={contentDir === 'ltr' ? 'on' : ''} onClick={() => setContentDir('ltr')}>{t('set.dirLtr')}</button>
+            </div>
+          </div>
           <label className="switch-row">
             <span>{t('set.autoClean')}</span>
             <input type="checkbox" checked={autoClean} onChange={(e) => setAutoClean(e.target.checked)} />
@@ -879,7 +887,7 @@ export default function Editor() {
             <textarea
               ref={taRef}
               className="editor-area"
-              dir={dir}
+              dir={contentDir}
               spellCheck="true"
               value={text}
               onChange={(e) => setText(e.target.value)}
@@ -903,7 +911,7 @@ export default function Editor() {
             <div
               ref={previewRef}
               className="preview-area markdown-body"
-              dir={dir}
+              dir={contentDir}
               style={{ fontSize: `${Math.round((15 * zoom) / 100)}px` }}
               onClick={onPreviewClick}
               dangerouslySetInnerHTML={{ __html: html }}

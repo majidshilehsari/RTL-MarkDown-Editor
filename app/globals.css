@@ -1130,11 +1130,6 @@ button.primary:hover {
 }
 
 /* در چیدمان چپ‌به‌راست، منو و دکمه‌های شناور جای درست خود را بگیرند */
-[dir='ltr'] .menu-panel {
-  left: auto;
-  right: 12px;
-}
-
 [dir='ltr'] .table-wrap > .table-copy {
   right: auto;
   left: 0;
@@ -1150,9 +1145,6 @@ button.primary:hover {
   text-align: left;
 }
 
-[dir='ltr'] .menu-item {
-  text-align: left;
-}
 
 /* فونت مناسب هر زبان */
 [lang='ar'],
@@ -1165,4 +1157,65 @@ button.primary:hover {
 [lang='en'] .editor-area,
 [lang='en'] .markdown-body {
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ===== انتخاب زبان در هدر ===== */
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-inline-end: 6px;
+}
+
+.lang-switch .lang-btn {
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+}
+
+.lang-switch .lang-btn.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.lang-flag {
+  font-size: 13px;
+}
+
+@media (max-width: 1000px) {
+  .lang-switch .lang-name {
+    display: none;
+  }
+  .lang-switch .lang-btn {
+    padding: 4px 7px;
+  }
+}
+
+/* انتخاب جهت متن در تنظیمات */
+.dir-row .dir-buttons {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.dir-row .dir-buttons button {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.dir-row .dir-buttons button.on {
+  background: var(--accent);
+  color: #fff;
 }
