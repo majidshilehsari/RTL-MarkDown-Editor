@@ -75,6 +75,7 @@ export default function Editor() {
   const [clipPerm, setClipPerm] = useState('unknown');
   const [lang, setLang] = useState('fa');
   const [contentDir, setContentDir] = useState('rtl');
+  const [autoDir, setAutoDir] = useState(true);
   const [lineHeight, setLineHeight] = useState(1.7);
   const [autoClean, setAutoClean] = useState(true);
   const [rliCopy, setRliCopy] = useState(true);
@@ -209,9 +210,10 @@ export default function Editor() {
           table: t('copy.table'),
           codeTitle: t('copy.code'),
           tableTitle: t('copy.table'),
-        })
+        },
+        { autoDir })
       ),
-    [text, t]
+    [text, t, autoDir]
   );
 
   // --- کپی کد/جدول از داخل پیش‌نمایش (دکمه‌ها مستقیماً در HTML تولید می‌شوند) ---
@@ -840,6 +842,10 @@ export default function Editor() {
             </div>
           </div>
           <label className="switch-row">
+            <span>{t('set.autoDir')}</span>
+            <input type="checkbox" checked={autoDir} onChange={(e) => setAutoDir(e.target.checked)} />
+          </label>
+          <label className="switch-row">
             <span>{t('set.autoClean')}</span>
             <input type="checkbox" checked={autoClean} onChange={(e) => setAutoClean(e.target.checked)} />
           </label>
@@ -894,7 +900,12 @@ export default function Editor() {
               onKeyDown={onKeyDown}
               onPaste={onPaste}
               onSelect={() => setInfo((p) => p)}
-              style={{ fontSize: `${Math.round((fontSize * zoom) / 100)}px`, lineHeight }}
+              style={{
+                fontSize: `${Math.round((fontSize * zoom) / 100)}px`,
+                lineHeight,
+                unicodeBidi: autoDir ? 'plaintext' : 'normal',
+                textAlign: autoDir ? 'start' : undefined,
+              }}
               placeholder={t('ph.editor')}
             />
           </section>

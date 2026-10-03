@@ -1048,7 +1048,9 @@ button.primary:hover {
 .markdown-body td {
   border: 1px solid var(--border);
   padding: 7px 12px;
-  text-align: right;
+  /* سلول‌ها همیشه وسط‌چین‌اند، چه فارسی چه انگلیسی */
+  text-align: center;
+  vertical-align: middle;
 }
 
 .markdown-body th {
@@ -1140,11 +1142,6 @@ button.primary:hover {
   text-align: left;
 }
 
-[dir='ltr'] .markdown-body th,
-[dir='ltr'] .markdown-body td {
-  text-align: left;
-}
-
 
 /* فونت مناسب هر زبان */
 [lang='ar'],
@@ -1218,4 +1215,18 @@ button.primary:hover {
 .dir-row .dir-buttons button.on {
   background: var(--accent);
   color: #fff;
+}
+
+/* هر بلوک جهت خودش را دارد؛ ترازبندی بر اساس همان جهت */
+.markdown-body [dir='rtl'] {
+  text-align: right;
+}
+
+.markdown-body [dir='ltr'] {
+  text-align: left;
+}
+
+.markdown-body th[dir],
+.markdown-body td[dir] {
+  text-align: center;
 }
