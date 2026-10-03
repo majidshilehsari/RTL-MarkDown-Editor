@@ -1,13 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js/lib/common';
 import { fixRTLText, wrapForRTL, isMixedDirection } from '../lib/bidi';
-import { enhancePreview } from '../lib/enhancePreview';
-
-marked.use({ gfm: true, breaks: true });
+import { renderMarkdown, copyTargetText } from '../lib/markdown';
 
 function sanitizeHtml(raw) {
   // DOMPurify فقط در مرورگر در دسترس است؛ هنگام رندر اولیه (SSR) بدون پاک‌سازی برگردانده می‌شود
@@ -306,18 +303,34 @@ export default function Editor() {
   }, [text]);
 
   // --- render preview ---
-  const html = useMemo(() => {
-    const raw = marked.parse(text || '');
-    return sanitizeHtml(raw);
-  }, [text]);
+  const html = useMemo(() => sanitizeHtml(renderMarkdown(text)), [text]);
 
-  // --- رنگ‌آمیزی کد + دکمه‌ی کپی روی بلاک‌های کد و جدول‌ها ---
-  useEffect(() => {
-    enhancePreview(previewRef.current, {
-      hljs,
-      onCopy: (t) => navigator.clipboard.writeText(t),
-    });
-  }, [html, mode]);
+  // --- کپی کد/جدول از داخل پیش‌نمایش (دکمه‌ها مستقیماً در HTML تولید می‌شوند) ---
+  const onPreviewClick = useCallback(async (e) => {
+    const btn = e.target.closest?.('.copy-btn');
+    if (!btn) return;
+    e.preventDefault();
+    const value = copyTargetText(btn);
+    const labelEl = btn.querySelector('.copy-label');
+    const icoEl = btn.querySelector('.copy-ico');
+    const original = labelEl ? labelEl.textContent : '';
+    try {
+      await navigator.clipboard.writeText(value);
+      btn.classList.add('done');
+      if (icoEl) icoEl.textContent = '✓';
+      if (labelEl) labelEl.textContent = 'کپی شد';
+      setSaveState('کپی شد ✓');
+    } catch {
+      btn.classList.add('failed');
+      if (icoEl) icoEl.textContent = '⚠️';
+      if (labelEl) labelEl.textContent = 'خطا';
+    }
+    setTimeout(() => {
+      btn.classList.remove('done', 'failed');
+      if (icoEl) icoEl.textContent = '📋';
+      if (labelEl) labelEl.textContent = original;
+    }, 1600);
+  }, []);
 
   // --- generic selection transform ---
   const transformSelection = useCallback(
@@ -688,31 +701,7 @@ export default function Editor() {
           </div>
         </div>
 
-        <div className="toolbar-scroll">
-          <button className="tool" title="برگردان (Ctrl+Z)" onClick={actions.undo}>↩️</button>
-          <button className="tool" title="بازگردانی (Ctrl+Y)" onClick={actions.redo}>↪️</button>
-          <div className="sep" />
-          <button className="tool" title="تیتر ۱" onClick={actions.h1}>H1</button>
-          <button className="tool" title="تیتر ۲" onClick={actions.h2}>H2</button>
-          <button className="tool" title="تیتر ۳" onClick={actions.h3}>H3</button>
-          <div className="sep" />
-          <button className="tool" title="بولد (Ctrl+B)" onClick={actions.bold}><b>ب</b></button>
-          <button className="tool" title="ایتالیک (Ctrl+I)" onClick={actions.italic}><i>ایت</i></button>
-          <button className="tool" title="خط‌خورده (Ctrl+Shift+X)" onClick={actions.strike}><s>خط</s></button>
-          <button className="tool" title="کد درون‌خطی" onClick={actions.code}>`کد`</button>
-          <button className="tool" title="بلاک کد (Ctrl+E)" onClick={actions.codeBlock}>{'</>'}</button>
-          <div className="sep" />
-          <button className="tool" title="نقل‌قول" onClick={actions.quote}>❝</button>
-          <button className="tool" title="لیست نقطه‌ای" onClick={actions.ul}>•</button>
-          <button className="tool" title="لیست شماره‌دار" onClick={actions.ol}>۱.</button>
-          <button className="tool" title="تکلیف" onClick={actions.task}>☑</button>
-          <button className="tool" title="خط جداکننده" onClick={actions.hr}>―</button>
-          <div className="sep" />
-          <button className="tool" title="لینک (Ctrl+K)" onClick={actions.link}>🔗</button>
-          <button className="tool" title="تصویر" onClick={actions.image}>🖼️</button>
-          <button className="tool" title="ساخت جدول / تبدیل CSV" onClick={() => { setShowTable((s) => !s); setShowEmoji(false); }}>⬛</button>
-          <button className="tool" title="ایموجی" onClick={() => { setShowEmoji((s) => !s); setShowTable(false); }}>😊</button>
-        </div>
+        <div className="toolbar-scroll" />
 
         <div className="toolbar-right">
           <div className="mode-switch" role="group" aria-label="حالت نمایش">
@@ -723,7 +712,7 @@ export default function Editor() {
           <button className="tool" title="باز کردن فایل (Ctrl+O)" onClick={importFile}>📂 باز کردن</button>
           <button className="tool" title="کپی متن" onClick={() => copyText(text)}>📋</button>
           <button className="tool" title="دانلود MD" onClick={() => download(text, 'document.md', 'text/markdown')}>⬇️</button>
-          <button className="tool" title="دانلود HTML" onClick={() => download(sanitizeHtml(marked.parse(text)), 'document.html', 'text/html')}>🖨️</button>
+          <button className="tool" title="دانلود HTML" onClick={() => download(sanitizeHtml(renderMarkdown(text)), 'document.html', 'text/html')}>🖨️</button>
           <button className="tool" title="پاک کردن همه" onClick={() => { if (confirm('همه‌ی متن پاک شود؟')) setText(''); }}>🗑️</button>
           <button className="tool" title="تغییر تم" onClick={toggleTheme}>{theme === 'light' ? '🌙' : '☀️'}</button>
           <button className="tool" title="تنظیمات" onClick={() => { setShowSettings((s) => !s); }}>⚙️</button>
@@ -834,9 +823,30 @@ export default function Editor() {
       <main className="body" ref={containerRef}>
         {(mode === 'split' || mode === 'edit') && (
           <section className="pane editor-pane" style={{ flex: mode === 'edit' ? '1' : undefined, width: mode === 'edit' ? '100%' : `${split}%` }}>
-            <div className="pane-head">
-              <span>✏️ ویرایش</span>
-              <span className="hint">سمت راست بنویسید — راست‌چین</span>
+            <div className="format-bar" role="toolbar" aria-label="ابزار ویرایش">
+              <button className="tool" title="برگردان (Ctrl+Z)" onClick={actions.undo}>↩️</button>
+              <button className="tool" title="بازگردانی (Ctrl+Y)" onClick={actions.redo}>↪️</button>
+              <div className="sep" />
+              <button className="tool" title="تیتر ۱" onClick={actions.h1}>H1</button>
+              <button className="tool" title="تیتر ۲" onClick={actions.h2}>H2</button>
+              <button className="tool" title="تیتر ۳" onClick={actions.h3}>H3</button>
+              <div className="sep" />
+              <button className="tool" title="بولد (Ctrl+B)" onClick={actions.bold}><b>ب</b></button>
+              <button className="tool" title="ایتالیک (Ctrl+I)" onClick={actions.italic}><i>ایت</i></button>
+              <button className="tool" title="خط‌خورده (Ctrl+Shift+X)" onClick={actions.strike}><s>خط</s></button>
+              <button className="tool" title="کد درون‌خطی" onClick={actions.code}>`کد`</button>
+              <button className="tool" title="بلاک کد (Ctrl+E)" onClick={actions.codeBlock}>{'</>'}</button>
+              <div className="sep" />
+              <button className="tool" title="نقل‌قول" onClick={actions.quote}>❝</button>
+              <button className="tool" title="لیست نقطه‌ای" onClick={actions.ul}>•</button>
+              <button className="tool" title="لیست شماره‌دار" onClick={actions.ol}>۱.</button>
+              <button className="tool" title="تکلیف" onClick={actions.task}>☑</button>
+              <button className="tool" title="خط جداکننده" onClick={actions.hr}>―</button>
+              <div className="sep" />
+              <button className="tool" title="لینک (Ctrl+K)" onClick={actions.link}>🔗</button>
+              <button className="tool" title="تصویر" onClick={actions.image}>🖼️</button>
+              <button className="tool" title="ساخت جدول / تبدیل CSV" onClick={() => { setShowTable((s) => !s); setShowEmoji(false); }}>⬛</button>
+              <button className="tool" title="ایموجی" onClick={() => { setShowEmoji((s) => !s); setShowTable(false); }}>😊</button>
             </div>
             <textarea
               ref={taRef}
@@ -862,17 +872,25 @@ export default function Editor() {
 
         {(mode === 'split' || mode === 'preview') && (
           <section className="pane preview-pane" style={{ flex: mode === 'preview' ? '1' : undefined, width: mode === 'preview' ? '100%' : `${100 - split}%` }}>
-            <div className="pane-head">
-              <span>👁️ پیش‌نمایش</span>
-              <span className="hint">سمت چپ — نتیجه زنده</span>
-            </div>
-            <div ref={previewRef} className="preview-area markdown-body" dir="rtl" dangerouslySetInnerHTML={{ __html: html }} />
+            <div
+              ref={previewRef}
+              className="preview-area markdown-body"
+              dir="rtl"
+              onClick={onPreviewClick}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
           </section>
         )}
       </main>
 
       {/* ===== نوار وضعیت ===== */}
       <footer className="statusbar">
+        <span className="mode-info">
+          {mode === 'edit' ? '✏️ ویرایش' : mode === 'preview' ? '👁️ پیش‌نمایش' : '✏️ ویرایش + 👁️ پیش‌نمایش'}
+        </span>
+        <span className="dot">•</span>
+        <span className="hint">نوشتن سمت راست، نتیجه‌ی زنده سمت چپ</span>
+        <span className="dot">•</span>
         <span>کلمات: <b>{info.words}</b></span>
         <span>نویسه: <b>{info.chars}</b></span>
         <span>خط <b>{info.line}</b> : ستون <b>{info.col}</b></span>
