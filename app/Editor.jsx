@@ -250,9 +250,7 @@ export default function Editor() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [clipPerm, setClipPerm] = useState('unknown');
-  const [showClipHint, setShowClipHint] = useState(false);
-  const [hintDismissed, setHintDismissed] = useState(true);
-  const [inFrame, setInFrame] = useState(false);
+  const [pasteArmed, setPasteArmed] = useState(false);
   const [lineHeight, setLineHeight] = useState(1.7);
   const [autoClean, setAutoClean] = useState(true);
   const [rliCopy, setRliCopy] = useState(true);
@@ -270,6 +268,7 @@ export default function Editor() {
   const pasteCatcherRef = useRef(null);
   const previewRef = useRef(null);
   const histRef = useRef({ stack: [], index: -1, lock: false, timer: null });
+  const armTimer = useRef(null);
   const pendingPaste = useRef(null);
 
   // --- load initial ---
@@ -282,16 +281,6 @@ export default function Editor() {
     }
     setText(initial || SAMPLE);
     setLoaded(true);
-    try {
-      setHintDismissed(localStorage.getItem('rtl-md-clip-hint') === 'off');
-    } catch {
-      setHintDismissed(false);
-    }
-    try {
-      setInFrame(window.self !== window.top);
-    } catch {
-      setInFrame(true);
-    }
   }, []);
 
   // --- تاریخچه‌ی بازگرداندن/انجام دوباره (برای همه‌ی عملیات، نه فقط تایپ) ---
@@ -638,8 +627,7 @@ export default function Editor() {
       /* فایرفاکس/سافاری این مجوز را گزارش نمی‌کنند */
     }
     const raw = await navigator.clipboard.readText();
-    // اگر مجوز دائمی نبود یعنی مرورگر تاییدیه‌ی Paste را نشان داده است
-    if (!granted && !hintDismissed) setShowClipHint(true);
+    void granted;
     return clean(raw);
   };
 
@@ -686,13 +674,23 @@ export default function Editor() {
     }
   };
 
+  // مرحله‌ی اول: پاک کردن فوری و آماده‌شدن. مرحله‌ی دوم (کلیک مجدد): چسباندن
   const quickClearAndPaste = async () => {
-    // اول فوری پاک می‌کنیم تا بدون هیچ مرحله‌ی اضافه، نتیجه بلافاصله دیده شود
-    setText('');
+    if (!pasteArmed) {
+      setText('');
+      setPasteArmed(true);
+      setSaveState('متن پاک شد — برای چسباندن دوباره کلیک کنید');
+      clearTimeout(armTimer.current);
+      armTimer.current = setTimeout(() => setPasteArmed(false), 8000);
+      requestAnimationFrame(() => taRef.current?.focus());
+      return;
+    }
+    clearTimeout(armTimer.current);
+    setPasteArmed(false);
     try {
       const clip = await readClipboard();
       setText(clip);
-      setSaveState('پاک و چسبانده شد ✓');
+      setSaveState('چسبانده شد ✓');
       requestAnimationFrame(() => taRef.current?.focus());
     } catch {
       fallbackPaste('replace');
@@ -850,7 +848,13 @@ export default function Editor() {
         <div className="qb-center">
           <button className="qbtn qbtn-red" title="پاک کردن کل متن (بدون تاییدیه)" onClick={quickClear}>🗑️ پاک کردن</button>
           <button className="qbtn qbtn-green" title="چسباندن از کلیپ‌بورد در محل نشانگر" onClick={quickPaste}>📥 چسباندن</button>
-          <button className="qbtn qbtn-amber" title="پاک کردن کل متن و چسباندن محتوای کلیپ‌بورد" onClick={quickClearAndPaste}>♻️ پاک کردن و چسباندن</button>
+          <button
+            className={`qbtn qbtn-amber ${pasteArmed ? 'armed' : ''}`}
+            title={pasteArmed ? 'برای چسباندن محتوای کلیپ‌بورد دوباره کلیک کنید' : 'پاک کردن کل متن و چسباندن محتوای کلیپ‌بورد'}
+            onClick={quickClearAndPaste}
+          >
+            {pasteArmed ? '👉 دوباره کلیک کنید' : '♻️ پاک کردن و چسباندن'}
+          </button>
           <button className="qbtn qbtn-blue" title="کپی کل متن ویرایشگر" onClick={quickCopy}>📋 کپی</button>
           <button
             className="qbtn qbtn-purple"
@@ -1047,34 +1051,6 @@ export default function Editor() {
         <span className="grow" />
         <span className={`save ${saveState.startsWith('خطا') ? 'err' : ''}`}>{saveState}</span>
       </footer>
-
-      {/* ===== راهنمای حذف تاییدیه‌ی Paste مرورگر ===== */}
-      {showClipHint && !hintDismissed && (
-        <div className="clip-hint" role="status">
-          <div className="clip-hint-body">
-            <strong>آن پنجره‌ی کوچک «Paste» مال مرورگر است، نه این برنامه.</strong>
-            <span>
-              برای اینکه دیگر هرگز ظاهر نشود: روی آیکن کنار نشانی سایت کلیک کنید →
-              بخش <b>Clipboard</b> را روی <b>Allow</b> بگذارید (یا در کروم نشانی
-              <code>chrome://settings/content/clipboard</code> ).
-              {inFrame && ' چون این صفحه داخل قاب (iframe) باز شده، بهتر است آن را در یک تب جداگانه باز کنید.'}
-            </span>
-          </div>
-          <div className="clip-hint-actions">
-            <button onClick={() => setShowClipHint(false)}>باشه</button>
-            <button
-              className="ghost"
-              onClick={() => {
-                try { localStorage.setItem('rtl-md-clip-hint', 'off'); } catch {}
-                setHintDismissed(true);
-                setShowClipHint(false);
-              }}
-            >
-              دیگر نشان نده
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ===== گیرنده‌ی مخفی برای چسباندن در مرورگرهای بدون دسترسی مستقیم ===== */}
       <textarea
