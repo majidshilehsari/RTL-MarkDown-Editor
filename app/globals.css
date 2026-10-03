@@ -1,5 +1,5 @@
 :root {
-  --bg: #f4f5f7;
+  --bg: #dfe3e8;
   --surface: #ffffff;
   --surface-2: #eef0f3;
   --border: #d8dbe1;
@@ -8,12 +8,23 @@
   --accent: #2563eb;
   --accent-2: #1d4ed8;
   --fix: #059669;
-  --code-bg: #f1f3f5;
+  --code-bg: #faf9f8;
+  --code-border: #e2e4e9;
+  --code-head-bg: #eceef2;
+  --code-head-text: #3b424d;
+  --hl-text: #24292f;
+  --hl-comment: #8a919a;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a7d33;
+  --hl-number: #0550ae;
+  --hl-title: #8250df;
+  --hl-attr: #953800;
+  --hl-meta: #0969da;
   --shadow: 0 6px 24px rgba(20, 24, 33, 0.12);
 }
 
 [data-theme='dark'] {
-  --bg: #121417;
+  --bg: #0e1013;
   --surface: #1b1f26;
   --surface-2: #232830;
   --border: #343b46;
@@ -22,7 +33,18 @@
   --accent: #3b82f6;
   --accent-2: #60a5fa;
   --fix: #10b981;
-  --code-bg: #161a20;
+  --code-bg: #0f141b;
+  --code-border: #2a313c;
+  --code-head-bg: #1a2029;
+  --code-head-text: #c6ccd6;
+  --hl-text: #e6e9ef;
+  --hl-comment: #7d8795;
+  --hl-keyword: #ff7b72;
+  --hl-string: #7ee787;
+  --hl-number: #79c0ff;
+  --hl-title: #d2a8ff;
+  --hl-attr: #ffa657;
+  --hl-meta: #58a6ff;
   --shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
 }
 
@@ -38,7 +60,7 @@ body {
 }
 
 body {
-  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: 'Vazirmatn', 'Inter', 'Segoe UI', Tahoma, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
   transition: background 0.2s, color 0.2s;
@@ -69,7 +91,7 @@ button {
   padding: 8px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .brand {
@@ -77,6 +99,12 @@ button {
   align-items: center;
   gap: 8px;
   white-space: nowrap;
+  flex: 1 1 0;
+}
+
+.toolbar .mode-switch {
+  margin: 0 auto;
+  flex: 0 0 auto;
 }
 
 .brand .logo {
@@ -104,16 +132,254 @@ button {
   align-items: center;
   gap: 3px;
   overflow-x: auto;
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 0;
   padding: 2px;
   scrollbar-width: thin;
+}
+
+
+/* ===== چیدمان سه‌ناحیه‌ای هدر دوم ===== */
+.qb-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.qb-side {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+/* --- زوم (سمت راست) --- */
+.zoom-btn,
+.zoom-val {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.zoom-btn:hover,
+.zoom-val:hover {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-2));
+}
+
+.zoom-val {
+  min-width: 48px;
+  color: var(--muted);
+}
+
+.zoom-range {
+  width: 110px;
+  accent-color: var(--accent);
+  cursor: ew-resize;
+}
+
+/* --- بازگرداندن / انجام دوباره (سمت چپ) --- */
+.hbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s, transform 0.08s;
+}
+
+.hbtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+}
+
+.hbtn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.hbtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.hbtn .hico {
+  font-size: 13px;
+}
+
+/* ===== منوی همبرگری ===== */
+.tool.burger {
+  font-size: 19px;
+  line-height: 1;
+  padding: 5px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.tool.burger.open {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.menu-panel {
+  position: absolute;
+  top: 54px;
+  left: 12px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  min-width: 230px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.menu-item:hover {
+  background: var(--surface-2);
+}
+
+.menu-item small {
+  font-size: 11px;
+  color: var(--muted);
+  direction: ltr;
+}
+
+.menu-item.danger {
+  color: #dc2626;
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 5px 4px;
+  background: var(--border);
+}
+
+@media (max-width: 860px) {
+  .qb-side {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+  .qb-center {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+
+/* ===== هدر دوم ثابت (نوار دسترسی سریع) ===== */
+.quickbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  flex: none;
+}
+
+.quickbar .qbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: #fff;
+  background: var(--qb);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 2px 6px var(--qb-shadow, rgba(0, 0, 0, 0.18));
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.08s, box-shadow 0.15s;
+}
+
+.quickbar .qbtn:hover {
+  filter: brightness(1.08) saturate(1.05);
+  box-shadow: 0 4px 12px var(--qb-shadow, rgba(0, 0, 0, 0.22));
+}
+
+.quickbar .qbtn:active {
+  transform: translateY(1px);
+  filter: brightness(0.95);
+}
+
+/* رنگ اختصاصی هر دکمه */
+.quickbar .qbtn-red {
+  --qb: linear-gradient(135deg, #ef4444, #b91c1c);
+  --qb-shadow: rgba(185, 28, 28, 0.35);
+}
+
+.quickbar .qbtn-green {
+  --qb: linear-gradient(135deg, #10b981, #047857);
+  --qb-shadow: rgba(4, 120, 87, 0.35);
+}
+
+.quickbar .qbtn-amber {
+  --qb: linear-gradient(135deg, #ea580c, #9a3412);
+  --qb-shadow: rgba(154, 52, 18, 0.35);
+}
+
+.quickbar .qbtn-blue {
+  --qb: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  --qb-shadow: rgba(29, 78, 216, 0.35);
+}
+
+.quickbar .qbtn-purple {
+  --qb: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  --qb-shadow: rgba(109, 40, 217, 0.35);
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 3px;
   white-space: nowrap;
+  flex: 1 1 0;
 }
 
 .sep {
@@ -317,6 +583,7 @@ button.primary:hover {
   display: flex;
   overflow: hidden;
   min-height: 0;
+  background: var(--bg);
 }
 
 .pane {
@@ -346,6 +613,26 @@ button.primary:hover {
   color: var(--muted);
 }
 
+ /* ===== نوار ابزار ویرایش داخل خود کادر ویرایش ===== */
+.format-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 5px 8px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex: none;
+}
+
+.format-bar .tool {
+  padding: 4px 7px;
+  font-size: 13px;
+}
+
 .editor-area {
   flex: 1;
   width: 100%;
@@ -361,10 +648,41 @@ button.primary:hover {
   word-break: break-word;
 }
 
+.preview-pane {
+  background: var(--bg);
+}
+
+/* ناحیه‌ی نمایش متن مثل یک «برگه» با حاشیه‌ی چپ و راست */
 .preview-area {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 22px;
+  width: 100%;
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 22px 34px 40px;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  box-shadow: 0 0 22px rgba(20, 24, 33, 0.08);
+}
+
+@media (max-width: 720px) {
+  .preview-area {
+    padding: 16px 18px 28px;
+    border-left: none;
+    border-right: none;
+  }
+}
+
+/* فیلد مخفی برای چسباندن پشتیبان */
+.paste-catcher {
+  position: fixed;
+  top: 0;
+  inset-inline-start: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .divider {
@@ -417,7 +735,9 @@ button.primary:hover {
 /* ===== نوار وضعیت ===== */
 .statusbar {
   display: flex;
-  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
   padding: 5px 14px;
   font-size: 12px;
   color: var(--muted);
@@ -427,6 +747,19 @@ button.primary:hover {
 
 .statusbar .grow {
   flex: 1;
+}
+
+.statusbar .mode-info {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.statusbar .dot {
+  opacity: 0.45;
+}
+
+.statusbar .hint {
+  color: var(--muted);
 }
 
 .statusbar .save.err {
@@ -490,13 +823,200 @@ button.primary:hover {
   unicode-bidi: embed;
 }
 
+/* ===== بلاک کد شبیه ویرایشگر، با سربرگ و دکمه‌ی کپی ===== */
+.code-block {
+  margin: 1em 0;
+  border: 1px solid var(--code-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--code-bg);
+  box-shadow: 0 2px 10px rgba(15, 20, 30, 0.08);
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--code-head-bg);
+  border-bottom: 1px solid var(--code-border);
+  direction: ltr;
+}
+
+.code-lang {
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--code-head-text);
+  opacity: 0.85;
+}
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: 'Vazirmatn', 'Segoe UI', Tahoma, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--code-head-text);
+  background: color-mix(in srgb, var(--code-head-text) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--code-head-text) 22%, transparent);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, opacity 0.15s;
+}
+
+.copy-btn:hover {
+  background: color-mix(in srgb, var(--code-head-text) 20%, transparent);
+}
+
+.copy-btn.done {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.copy-btn.failed {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.code-block .markdown-body pre,
+.code-block pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background: var(--code-bg);
+}
+
+/* ===== جدول با دکمه‌ی کپی شناور ===== */
+.table-wrap {
+  position: relative;
+  margin: 1em 0;
+  padding-top: 34px;
+  overflow-x: auto;
+  border-radius: 10px;
+}
+
+.table-wrap > .table-copy {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: auto;
+  z-index: 3;
+  opacity: 0.9;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(15, 20, 30, 0.14);
+}
+
+.table-wrap:hover > .table-copy,
+.table-wrap > .table-copy:focus-visible {
+  opacity: 1;
+}
+
+.copy-btn .copy-ico {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.table-wrap > .table-copy.done {
+  opacity: 1;
+  color: #fff;
+  background: #16a34a;
+  border-color: #16a34a;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
+}
+
+.table-wrap > .table-copy.failed {
+  opacity: 1;
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
 .markdown-body pre {
   background: var(--code-bg);
-  padding: 12px;
+  padding: 14px 16px;
   border-radius: 8px;
   overflow-x: auto;
   direction: ltr;
   text-align: left;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ===== رنگ‌آمیزی نحوی (highlight.js) ===== */
+.hljs {
+  color: var(--hl-text);
+  background: transparent;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--hl-comment);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag,
+.hljs-meta .hljs-keyword {
+  color: var(--hl-keyword);
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-meta-string {
+  color: var(--hl-string);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link {
+  color: var(--hl-number);
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: var(--hl-title);
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-type,
+.hljs-built_in {
+  color: var(--hl-attr);
+}
+
+.hljs-meta,
+.hljs-tag {
+  color: var(--hl-meta);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: 700;
+}
+
+.hljs-deletion {
+  color: #ef4444;
 }
 
 .markdown-body pre code {
@@ -528,7 +1048,9 @@ button.primary:hover {
 .markdown-body td {
   border: 1px solid var(--border);
   padding: 7px 12px;
-  text-align: right;
+  /* سلول‌ها همیشه وسط‌چین‌اند، چه فارسی چه انگلیسی */
+  text-align: center;
+  vertical-align: middle;
 }
 
 .markdown-body th {
@@ -562,4 +1084,149 @@ button.primary:hover {
 @media (max-width: 720px) {
   .brand-text { display: none; }
   .hint { display: none; }
+}
+
+/* ===== انتخاب زبان در منو ===== */
+.menu-langs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 12px 2px;
+}
+
+.menu-langs-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.lang-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.lang-btn:hover {
+  background: color-mix(in srgb, var(--accent) 16%, var(--surface-2));
+}
+
+.lang-btn.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* در چیدمان چپ‌به‌راست، منو و دکمه‌های شناور جای درست خود را بگیرند */
+[dir='ltr'] .table-wrap > .table-copy {
+  right: auto;
+  left: 0;
+}
+
+[dir='ltr'] .markdown-body {
+  direction: ltr;
+  text-align: left;
+}
+
+
+/* فونت مناسب هر زبان */
+[lang='ar'],
+[lang='ar'] .editor-area,
+[lang='ar'] .markdown-body {
+  font-family: 'Noto Sans Arabic', 'Vazirmatn', Tahoma, sans-serif;
+}
+
+[lang='en'],
+[lang='en'] .editor-area,
+[lang='en'] .markdown-body {
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ===== انتخاب زبان در هدر ===== */
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  margin-inline-end: 6px;
+}
+
+.lang-switch .lang-btn {
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+}
+
+.lang-switch .lang-btn.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+.lang-flag {
+  font-size: 13px;
+}
+
+@media (max-width: 1000px) {
+  .lang-switch .lang-name {
+    display: none;
+  }
+  .lang-switch .lang-btn {
+    padding: 4px 7px;
+  }
+}
+
+/* انتخاب جهت متن در تنظیمات */
+.dir-row .dir-buttons {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 2px;
+}
+
+.dir-row .dir-buttons button {
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.dir-row .dir-buttons button.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* هر بلوک جهت خودش را دارد؛ ترازبندی بر اساس همان جهت */
+.markdown-body [dir='rtl'] {
+  text-align: right;
+}
+
+.markdown-body [dir='ltr'] {
+  text-align: left;
+}
+
+.markdown-body th[dir],
+.markdown-body td[dir] {
+  text-align: center;
 }
