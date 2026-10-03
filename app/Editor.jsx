@@ -348,6 +348,43 @@ export default function Editor() {
     }
   };
 
+  // --- اقدام‌های نوار دسترسی سریع (هدر دوم) ---
+  const readClipboard = async () => {
+    const raw = await navigator.clipboard.readText();
+    return autoClean ? fixRTLText(raw) : raw;
+  };
+
+  const quickClear = () => {
+    if (confirm('همه‌ی متن پاک شود؟')) {
+      setText('');
+      setSaveState('متن پاک شد ✓');
+    }
+  };
+
+  const quickPaste = async () => {
+    try {
+      const clip = await readClipboard();
+      if (!clip) return;
+      insertAtCursor(clip);
+      setSaveState('چسبانده شد ✓');
+    } catch {
+      setSaveState('خطا در خواندن کلیپ‌بورد');
+    }
+  };
+
+  const quickClearAndPaste = async () => {
+    try {
+      const clip = await readClipboard();
+      setText(clip);
+      setSaveState('پاک و چسبانده شد ✓');
+      requestAnimationFrame(() => taRef.current?.focus());
+    } catch {
+      setSaveState('خطا در خواندن کلیپ‌بورد');
+    }
+  };
+
+  const quickCopy = () => copyText(text);
+
   // --- paste auto-clean ---
   const onPaste = (e) => {
     if (!autoClean) return;
@@ -492,6 +529,14 @@ export default function Editor() {
           <button className="tool" title="تنظیمات" onClick={() => { setShowSettings((s) => !s); }}>⚙️</button>
         </div>
       </header>
+
+      {/* ===== هدر دوم ثابت: دسترسی سریع ===== */}
+      <div className="quickbar" role="toolbar" aria-label="دسترسی سریع">
+        <button className="qbtn danger" title="پاک کردن کل متن" onClick={quickClear}>🗑️ پاک کردن</button>
+        <button className="qbtn" title="چسباندن از کلیپ‌بورد در محل نشانگر" onClick={quickPaste}>📥 چسباندن</button>
+        <button className="qbtn" title="پاک کردن کل متن و چسباندن محتوای کلیپ‌بورد" onClick={quickClearAndPaste}>♻️ پاک کردن و چسباندن</button>
+        <button className="qbtn" title="کپی کل متن ویرایشگر" onClick={quickCopy}>📋 کپی</button>
+      </div>
 
       {/* ===== پاپ‌اور جدول ===== */}
       {showTable && (
