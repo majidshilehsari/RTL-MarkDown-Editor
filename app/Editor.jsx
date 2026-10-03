@@ -14,7 +14,7 @@ function sanitizeHtml(raw) {
   return DOMPurify.sanitize(raw);
 }
 
-const STORAGE_KEY = 'rtl-md-editor-v2';
+const STORAGE_KEY = 'rtl-md-editor-v3';
 
 
 const EMOJIS = [
