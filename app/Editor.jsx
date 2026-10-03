@@ -355,10 +355,9 @@ export default function Editor() {
   };
 
   const quickClear = () => {
-    if (confirm('همه‌ی متن پاک شود؟')) {
-      setText('');
-      setSaveState('متن پاک شد ✓');
-    }
+    setText('');
+    setSaveState('متن پاک شد ✓');
+    requestAnimationFrame(() => taRef.current?.focus());
   };
 
   const quickPaste = async () => {
@@ -502,16 +501,6 @@ export default function Editor() {
           <button className="tool" title="تصویر" onClick={actions.image}>🖼️</button>
           <button className="tool" title="ساخت جدول / تبدیل CSV" onClick={() => { setShowTable((s) => !s); setShowEmoji(false); }}>⬛</button>
           <button className="tool" title="ایموجی" onClick={() => { setShowEmoji((s) => !s); setShowTable(false); }}>😊</button>
-
-          <div className="sep" />
-
-          <button
-            className="tool fix-btn"
-            title="اصلاح چپ‌به‌راست (رفع مشکل متن فارسی هوش مصنوعی)"
-            onClick={actions.fix}
-          >
-            🔁 اصلاح چپ‌به‌راست
-          </button>
         </div>
 
         <div className="toolbar-right">
@@ -532,10 +521,17 @@ export default function Editor() {
 
       {/* ===== هدر دوم ثابت: دسترسی سریع ===== */}
       <div className="quickbar" role="toolbar" aria-label="دسترسی سریع">
-        <button className="qbtn danger" title="پاک کردن کل متن" onClick={quickClear}>🗑️ پاک کردن</button>
-        <button className="qbtn" title="چسباندن از کلیپ‌بورد در محل نشانگر" onClick={quickPaste}>📥 چسباندن</button>
-        <button className="qbtn" title="پاک کردن کل متن و چسباندن محتوای کلیپ‌بورد" onClick={quickClearAndPaste}>♻️ پاک کردن و چسباندن</button>
-        <button className="qbtn" title="کپی کل متن ویرایشگر" onClick={quickCopy}>📋 کپی</button>
+        <button className="qbtn qbtn-red" title="پاک کردن کل متن (بدون تاییدیه)" onClick={quickClear}>🗑️ پاک کردن</button>
+        <button className="qbtn qbtn-green" title="چسباندن از کلیپ‌بورد در محل نشانگر" onClick={quickPaste}>📥 چسباندن</button>
+        <button className="qbtn qbtn-amber" title="پاک کردن کل متن و چسباندن محتوای کلیپ‌بورد" onClick={quickClearAndPaste}>♻️ پاک کردن و چسباندن</button>
+        <button className="qbtn qbtn-blue" title="کپی کل متن ویرایشگر" onClick={quickCopy}>📋 کپی</button>
+        <button
+          className="qbtn qbtn-purple"
+          title="حل مسئله چپ به راست بودن اعداد اسلش دار (اصلاح جهت متن فارسی)"
+          onClick={actions.fix}
+        >
+          🔁 حل مسئله چپ به راست بودن اعداد اسلش دار
+        </button>
       </div>
 
       {/* ===== پاپ‌اور جدول ===== */}
