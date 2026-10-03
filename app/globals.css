@@ -691,9 +691,10 @@ button.primary:hover {
 .table-wrap > .table-copy {
   position: absolute;
   top: 6px;
-  left: 6px;
+  right: 6px;
+  left: auto;
   z-index: 3;
-  opacity: 0;
+  opacity: 0.55;
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -703,6 +704,11 @@ button.primary:hover {
 .table-wrap:hover > .table-copy,
 .table-wrap > .table-copy:focus-visible {
   opacity: 1;
+}
+
+.copy-btn .copy-ico {
+  font-size: 12px;
+  line-height: 1;
 }
 
 .table-wrap > .table-copy.done {

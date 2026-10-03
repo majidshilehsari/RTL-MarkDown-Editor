@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import hljs from 'highlight.js/lib/common';
 import { fixRTLText, wrapForRTL, isMixedDirection } from '../lib/bidi';
+import { enhancePreview } from '../lib/enhancePreview';
 
 marked.use({ gfm: true, breaks: true });
 
@@ -14,27 +15,186 @@ function sanitizeHtml(raw) {
   return DOMPurify.sanitize(raw);
 }
 
-const STORAGE_KEY = 'rtl-md-editor-v1';
+const STORAGE_KEY = 'rtl-md-editor-v2';
 
-const SAMPLE = `# ویرایشگر مارک‌داون راست‌چین ✍️
+const SAMPLE = `سلام! حتماً. یک جدول از رنگ‌ها به همراه کدهای عددی‌شون (RGB، Hex و نام رنگ) برات آماده کردم و کد HTML کاملش رو هم نوشتم.
 
-به ویرایشگر خوش آمدید. **سمت راست بنویسید** و *سمت چپ* نتیجه را ببینید.
+## جدول رنگ‌ها و کدهای عددی
 
-## چرا این ابزار؟
-مشکل اصلی: هوش مصنوعی‌ها معمولاً **چپ‌به‌راست** می‌نویسند و متن فارسی را خراب می‌کنند.
-کافی است دکمه‌ی **«اصلاح چپ‌به‌راست»** را در نوار ابزار بزنید یا متن را که چسباندید خودکار پاک‌سازی شود.
+| نام رنگ | کد Hex | کد RGB | نمونه رنگ |
+|---------|--------|--------|-----------|
+| قرمز (Red) | #FF0000 | rgb(255, 0, 0) | 🔴 |
+| سبز (Green) | #00FF00 | rgb(0, 255, 0) | 🟢 |
+| آبی (Blue) | #0000FF | rgb(0, 0, 255) | 🔵 |
+| زرد (Yellow) | #FFFF00 | rgb(255, 255, 0) | 🟡 |
+| نارنجی (Orange) | #FFA500 | rgb(255, 165, 0) | 🟠 |
+| بنفش (Purple) | #800080 | rgb(128, 0, 128) | 🟣 |
+| صورتی (Pink) | #FFC0CB | rgb(255, 192, 203) | 🌸 |
+| مشکی (Black) | #000000 | rgb(0, 0, 0) | ⚫ |
+| سفید (White) | #FFFFFF | rgb(255, 255, 255) | ⚪ |
+| خاکستری (Gray) | #808080 | rgb(128, 128, 128) | 🩶 |
 
-### نوار ابزار شامل:
-- استایل متن: **بولد**، *ایتالیک*، ~~خط‌خورده~~
-- تیترها، لیست‌ها، نقل‌قول و کد
-- **ساخت جدول** و تبدیل CSV/TSV
-- اصلاح جهت، ایموجی و تنظیمات ظاهری
+## کد HTML کامل
 
-## ساخت جدول
-| محصول | قیمت | تعداد |
-| :---: | ---: | :--- |
-| قلم | ۵۰۰۰ تومان | ۲ |
-| دفتر | ۲۰۰۰۰ تومان | ۵ |
+\`\`\`html
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>جدول رنگ‌ها و کدهای عددی</title>
+    <style>
+        body {
+            font-family: 'Tahoma', sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            max-width: 700px;
+            background-color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        caption {
+            font-size: 1.4em;
+            font-weight: bold;
+            padding: 15px;
+            background-color: #333;
+            color: #fff;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid #ddd;
+        }
+
+        thead th {
+            background-color: #444;
+            color: #fff;
+            font-size: 1em;
+        }
+
+        tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        .swatch {
+            display: inline-block;
+            width: 40px;
+            height: 25px;
+            border-radius: 5px;
+            border: 1px solid #999;
+        }
+
+        /* رنگ نمونه‌ها */
+        .red    { background-color: #FF0000; }
+        .green  { background-color: #00FF00; }
+        .blue   { background-color: #0000FF; }
+        .yellow { background-color: #FFFF00; }
+        .orange { background-color: #FFA500; }
+        .purple { background-color: #800080; }
+        .pink   { background-color: #FFC0CB; }
+        .black  { background-color: #000000; }
+        .white  { background-color: #FFFFFF; }
+        .gray   { background-color: #808080; }
+    </style>
+</head>
+<body>
+
+    <table>
+        <caption>🎨 جدول رنگ‌ها و کدهای عددی</caption>
+        <thead>
+            <tr>
+                <th>نام رنگ</th>
+                <th>کد Hex</th>
+                <th>کد RGB</th>
+                <th>نمونه رنگ</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>قرمز (Red)</td>
+                <td>#FF0000</td>
+                <td>rgb(255, 0, 0)</td>
+                <td><span class="swatch red"></span></td>
+            </tr>
+            <tr>
+                <td>سبز (Green)</td>
+                <td>#00FF00</td>
+                <td>rgb(0, 255, 0)</td>
+                <td><span class="swatch green"></span></td>
+            </tr>
+            <tr>
+                <td>آبی (Blue)</td>
+                <td>#0000FF</td>
+                <td>rgb(0, 0, 255)</td>
+                <td><span class="swatch blue"></span></td>
+            </tr>
+            <tr>
+                <td>زرد (Yellow)</td>
+                <td>#FFFF00</td>
+                <td>rgb(255, 255, 0)</td>
+                <td><span class="swatch yellow"></span></td>
+            </tr>
+            <tr>
+                <td>نارنجی (Orange)</td>
+                <td>#FFA500</td>
+                <td>rgb(255, 165, 0)</td>
+                <td><span class="swatch orange"></span></td>
+            </tr>
+            <tr>
+                <td>بنفش (Purple)</td>
+                <td>#800080</td>
+                <td>rgb(128, 0, 128)</td>
+                <td><span class="swatch purple"></span></td>
+            </tr>
+            <tr>
+                <td>صورتی (Pink)</td>
+                <td>#FFC0CB</td>
+                <td>rgb(255, 192, 203)</td>
+                <td><span class="swatch pink"></span></td>
+            </tr>
+            <tr>
+                <td>مشکی (Black)</td>
+                <td>#000000</td>
+                <td>rgb(0, 0, 0)</td>
+                <td><span class="swatch black"></span></td>
+            </tr>
+            <tr>
+                <td>سفید (White)</td>
+                <td>#FFFFFF</td>
+                <td>rgb(255, 255, 255)</td>
+                <td><span class="swatch white"></span></td>
+            </tr>
+            <tr>
+                <td>خاکستری (Gray)</td>
+                <td>#808080</td>
+                <td>rgb(128, 128, 128)</td>
+                <td><span class="swatch gray"></span></td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>
+\`\`\`
+
+### ویژگی‌های این کد:
+- ✅ **راست‌چین (RTL)** برای زبان فارسی
+- ✅ **نمونه رنگ واقعی** در کنار هر ردیف
+- ✅ **افکت hover** روی ردیف‌ها
+- ✅ **طراحی ریسپانسیو** و مدرن
+- ✅ **کد Hex و RGB** هر رنگ
+
+اگه بخوای می‌تونم رنگ‌های بیشتری اضافه کنم، یا ستون‌های دیگه‌ای (مثل کد HSL یا CMYK) هم بهش اضافه کنم. 😊
 `;
 
 const EMOJIS = [
@@ -152,92 +312,12 @@ export default function Editor() {
   }, [text]);
 
   // --- رنگ‌آمیزی کد + دکمه‌ی کپی روی بلاک‌های کد و جدول‌ها ---
-  const attachCopy = useCallback((btn, getText) => {
-    btn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(getText());
-        const old = btn.innerHTML;
-        btn.classList.add('done');
-        btn.innerHTML = '<span>✓</span> کپی شد';
-        setTimeout(() => {
-          btn.classList.remove('done');
-          btn.innerHTML = old;
-        }, 1600);
-      } catch {
-        btn.innerHTML = '<span>⚠️</span> خطا';
-      }
-    });
-  }, []);
-
   useEffect(() => {
-    const root = previewRef.current;
-    if (!root) return;
-
-    // --- بلاک‌های کد ---
-    root.querySelectorAll('pre').forEach((pre) => {
-      if (pre.parentElement?.classList.contains('code-block')) return;
-      const codeEl = pre.querySelector('code');
-      const rawCode = (codeEl || pre).textContent || '';
-      let lang = '';
-      const m = (codeEl?.className || '').match(/language-([\w+#-]+)/i);
-      if (m) lang = m[1].toLowerCase();
-
-      if (codeEl) {
-        try {
-          const res =
-            lang && hljs.getLanguage(lang)
-              ? hljs.highlight(rawCode, { language: lang, ignoreIllegals: true })
-              : hljs.highlightAuto(rawCode);
-          codeEl.innerHTML = res.value;
-          codeEl.classList.add('hljs');
-          if (!lang) lang = res.language || '';
-        } catch {
-          /* اگر رنگ‌آمیزی شکست خورد، کد خام می‌ماند */
-        }
-      }
-
-      const wrap = document.createElement('div');
-      wrap.className = 'code-block';
-      const head = document.createElement('div');
-      head.className = 'code-head';
-      const label = document.createElement('span');
-      label.className = 'code-lang';
-      label.textContent = lang ? lang.toUpperCase() : 'کد';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'copy-btn';
-      btn.title = 'کپی کد در کلیپ‌بورد';
-      btn.innerHTML = '<span>📋</span> کپی';
-      attachCopy(btn, () => rawCode);
-      head.append(label, btn);
-
-      pre.parentNode.insertBefore(wrap, pre);
-      wrap.append(head, pre);
+    enhancePreview(previewRef.current, {
+      hljs,
+      onCopy: (t) => navigator.clipboard.writeText(t),
     });
-
-    // --- جدول‌ها ---
-    root.querySelectorAll('table').forEach((table) => {
-      if (table.parentElement?.classList.contains('table-wrap')) return;
-      const wrap = document.createElement('div');
-      wrap.className = 'table-wrap';
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'copy-btn table-copy';
-      btn.title = 'کپی جدول در کلیپ‌بورد';
-      btn.innerHTML = '<span>📋</span> کپی جدول';
-      attachCopy(btn, () =>
-        Array.from(table.querySelectorAll('tr'))
-          .map((tr) =>
-            Array.from(tr.querySelectorAll('th,td'))
-              .map((c) => (c.textContent || '').trim())
-              .join('\t')
-          )
-          .join('\n')
-      );
-      table.parentNode.insertBefore(wrap, table);
-      wrap.append(btn, table);
-    });
-  }, [html, mode, attachCopy]);
+  }, [html, mode]);
 
   // --- generic selection transform ---
   const transformSelection = useCallback(
