@@ -879,6 +879,12 @@ button.primary:hover {
   color: #fff;
 }
 
+.copy-btn.failed {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
 .code-block .markdown-body pre,
 .code-block pre {
   margin: 0;
@@ -922,6 +928,16 @@ button.primary:hover {
 .table-wrap > .table-copy.done {
   opacity: 1;
   color: #fff;
+  background: #16a34a;
+  border-color: #16a34a;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.35);
+}
+
+.table-wrap > .table-copy.failed {
+  opacity: 1;
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
 }
 
 .markdown-body pre {
@@ -1066,4 +1082,65 @@ button.primary:hover {
 @media (max-width: 720px) {
   .brand-text { display: none; }
   .hint { display: none; }
+}
+
+/* ===== راهنمای مجوز کلیپ‌بورد ===== */
+.clip-hint {
+  position: fixed;
+  bottom: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  max-width: min(680px, 94vw);
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.clip-hint-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clip-hint code {
+  direction: ltr;
+  font-family: 'Fira Code', monospace;
+  font-size: 11.5px;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 1px 5px;
+  margin: 0 3px;
+}
+
+.clip-hint-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: none;
+}
+
+.clip-hint-actions button {
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--accent);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.clip-hint-actions button.ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
 }

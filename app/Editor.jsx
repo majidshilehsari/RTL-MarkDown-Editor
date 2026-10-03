@@ -249,6 +249,10 @@ export default function Editor() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
+  const [clipPerm, setClipPerm] = useState('unknown');
+  const [showClipHint, setShowClipHint] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(true);
+  const [inFrame, setInFrame] = useState(false);
   const [lineHeight, setLineHeight] = useState(1.7);
   const [autoClean, setAutoClean] = useState(true);
   const [rliCopy, setRliCopy] = useState(true);
@@ -278,6 +282,16 @@ export default function Editor() {
     }
     setText(initial || SAMPLE);
     setLoaded(true);
+    try {
+      setHintDismissed(localStorage.getItem('rtl-md-clip-hint') === 'off');
+    } catch {
+      setHintDismissed(false);
+    }
+    try {
+      setInFrame(window.self !== window.top);
+    } catch {
+      setInFrame(true);
+    }
   }, []);
 
   // --- تاریخچه‌ی بازگرداندن/انجام دوباره (برای همه‌ی عملیات، نه فقط تایپ) ---
@@ -596,17 +610,36 @@ export default function Editor() {
   // --- اقدام‌های نوار دسترسی سریع (هدر دوم) ---
   const clean = useCallback((raw) => (autoClean ? fixRTLText(raw) : raw), [autoClean]);
 
-  // اجازه‌ی خواندن کلیپ‌بورد را زودهنگام می‌گیریم تا مرورگر هر بار تاییدیه نشان ندهد
+  // وضعیت مجوز کلیپ‌بورد را دنبال می‌کنیم؛ اگر «granted» باشد، مرورگر دیگر دکمه‌ی Paste نشان نمی‌دهد
   useEffect(() => {
-    try {
-      navigator.permissions?.query?.({ name: 'clipboard-read' }).catch(() => {});
-    } catch {
-      /* بعضی مرورگرها این نام مجوز را نمی‌شناسند */
-    }
+    let status;
+    const update = () => setClipPerm(status.state);
+    (async () => {
+      try {
+        status = await navigator.permissions.query({ name: 'clipboard-read' });
+        update();
+        status.onchange = update;
+      } catch {
+        setClipPerm('unknown');
+      }
+    })();
+    return () => {
+      if (status) status.onchange = null;
+    };
   }, []);
 
   const readClipboard = async () => {
+    let granted = false;
+    try {
+      const st = await navigator.permissions.query({ name: 'clipboard-read' });
+      granted = st.state === 'granted';
+      setClipPerm(st.state);
+    } catch {
+      /* فایرفاکس/سافاری این مجوز را گزارش نمی‌کنند */
+    }
     const raw = await navigator.clipboard.readText();
+    // اگر مجوز دائمی نبود یعنی مرورگر تاییدیه‌ی Paste را نشان داده است
+    if (!granted && !hintDismissed) setShowClipHint(true);
     return clean(raw);
   };
 
@@ -1010,9 +1043,38 @@ export default function Editor() {
         <span>کلمات: <b>{info.words}</b></span>
         <span>نویسه: <b>{info.chars}</b></span>
         <span>خط <b>{info.line}</b> : ستون <b>{info.col}</b></span>
+        {clipPerm === 'granted' && <span title="مرورگر اجازه‌ی خواندن کلیپ‌بورد را داده؛ دیگر تاییدیه‌ای نشان داده نمی‌شود">کلیپ‌بورد: مجاز ✓</span>}
         <span className="grow" />
         <span className={`save ${saveState.startsWith('خطا') ? 'err' : ''}`}>{saveState}</span>
       </footer>
+
+      {/* ===== راهنمای حذف تاییدیه‌ی Paste مرورگر ===== */}
+      {showClipHint && !hintDismissed && (
+        <div className="clip-hint" role="status">
+          <div className="clip-hint-body">
+            <strong>آن پنجره‌ی کوچک «Paste» مال مرورگر است، نه این برنامه.</strong>
+            <span>
+              برای اینکه دیگر هرگز ظاهر نشود: روی آیکن کنار نشانی سایت کلیک کنید →
+              بخش <b>Clipboard</b> را روی <b>Allow</b> بگذارید (یا در کروم نشانی
+              <code>chrome://settings/content/clipboard</code> ).
+              {inFrame && ' چون این صفحه داخل قاب (iframe) باز شده، بهتر است آن را در یک تب جداگانه باز کنید.'}
+            </span>
+          </div>
+          <div className="clip-hint-actions">
+            <button onClick={() => setShowClipHint(false)}>باشه</button>
+            <button
+              className="ghost"
+              onClick={() => {
+                try { localStorage.setItem('rtl-md-clip-hint', 'off'); } catch {}
+                setHintDismissed(true);
+                setShowClipHint(false);
+              }}
+            >
+              دیگر نشان نده
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ===== گیرنده‌ی مخفی برای چسباندن در مرورگرهای بدون دسترسی مستقیم ===== */}
       <textarea
