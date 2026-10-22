@@ -1,0 +1,11 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "rtl-markdown-editor",
+  "compatibility_date": "2026-10-22",
+  "assets": {
+    // Output directory produced by `next build` with output: 'export'
+    "directory": "./out",
+    // Unknown paths fall back to the exported 404.html page
+    "not_found_handling": "404-page"
+  }
+}
