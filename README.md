@@ -127,3 +127,37 @@ npm run dev
 الرخصة: [MIT](LICENSE)
 
 </div>
+
+---
+
+## Deployment — Cloudflare Workers
+
+This app is 100% client-side, so it is built as a **static export** and served by
+**Cloudflare Workers static assets**. Static-asset requests are free and unlimited —
+no Worker code is executed.
+
+```bash
+npm install
+npm run deploy     # next build  →  out/  →  wrangler deploy
+```
+
+Key configuration:
+
+| File | Setting |
+| --- | --- |
+| `next.config.mjs` | `output: 'export'`, `images.unoptimized`, `trailingSlash` |
+| `wrangler.jsonc` | `assets.directory = ./out`, `not_found_handling = "404-page"` |
+
+### Deploy from the Cloudflare dashboard (Git integration)
+
+**Workers & Pages → Create → Import a repository**
+
+| Field | Value |
+| --- | --- |
+| Project name | `rtl-markdown-editor` |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Preview command | `npx wrangler versions upload` |
+| Build branch | `main` |
+
+Every push to `main` is then published automatically.
